@@ -3,6 +3,7 @@ import Image from "next/image"
 import fs from "fs"
 import path from "path"
 import type { Post } from "@/lib/types"
+import { getChessData } from "@/lib/chess"
 
 async function getPosts(): Promise<Post[]> {
   const contentDir = path.join(process.cwd(), "content")
@@ -22,8 +23,14 @@ async function getPosts(): Promise<Post[]> {
   )
 }
 
+function formatChange(change: number): string {
+  if (change > 0) return `+${change}`
+  if (change < 0) return `${change}`
+  return "±0"
+}
+
 export default async function BlogPage() {
-  const posts = await getPosts()
+  const [posts, chessData] = await Promise.all([getPosts(), getChessData()])
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-12">
@@ -59,6 +66,51 @@ export default async function BlogPage() {
               Email
             </a>
           </div>
+          {(chessData.rapid || chessData.blitz) && (
+            <div className="flex gap-4 mt-3 text-sm text-gray-500">
+              <a
+                href="https://www.chess.com/member/kevin_on"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                ♟️ Chess.com:
+                {chessData.rapid && (
+                  <span>
+                    Rapid {chessData.rapid.current}{" "}
+                    <span
+                      className={
+                        chessData.rapid.change > 0
+                          ? "text-green-600"
+                          : chessData.rapid.change < 0
+                          ? "text-red-500"
+                          : ""
+                      }
+                    >
+                      ({formatChange(chessData.rapid.change)})
+                    </span>
+                  </span>
+                )}
+                {chessData.rapid && chessData.blitz && " · "}
+                {chessData.blitz && (
+                  <span>
+                    Blitz {chessData.blitz.current}{" "}
+                    <span
+                      className={
+                        chessData.blitz.change > 0
+                          ? "text-green-600"
+                          : chessData.blitz.change < 0
+                          ? "text-red-500"
+                          : ""
+                      }
+                    >
+                      ({formatChange(chessData.blitz.change)})
+                    </span>
+                  </span>
+                )}
+              </a>
+            </div>
+          )}
         </div>
       </section>
 

@@ -14,7 +14,7 @@ export default function CopyEmail({ email }: { email: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="group text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors inline-flex items-center gap-1"
+      className="group text-foreground-3 hover:text-brand cursor-pointer transition-colors inline-flex items-center gap-1"
     >
       {email}
       {copied ? (

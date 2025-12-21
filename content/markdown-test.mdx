@@ -1,0 +1,185 @@
+export const metadata = {
+  title: "Markdown Syntax Test",
+  date: "2025-01-01",
+  description: "A comprehensive test of all markdown syntax elements for styling verification.",
+}
+
+This is a test post to verify markdown styling. It includes **bold text**, *italic text*, and ***bold italic*** combinations. You can also use `inline code` within paragraphs.
+
+## Headings
+
+### This is an H3 heading
+
+#### This is an H4 heading
+
+##### This is an H5 heading
+
+## Paragraphs and Text
+
+Here's a regular paragraph with enough text to wrap across multiple lines. The quick brown fox jumps over the lazy dog. This sentence demonstrates how body text flows and wraps in the article layout.
+
+This is a second paragraph to show spacing between paragraphs. Notice the margin between this and the previous paragraph.
+
+## Links
+
+Here's a [link to an external site](https://example.com) and here's another [link with title](https://github.com "Visit GitHub").
+
+## Lists
+
+### Unordered List
+
+- First item
+- Second item
+  - Nested item A
+  - Nested item B
+- Third item
+
+### Ordered List
+
+1. First step
+2. Second step
+   1. Sub-step one
+   2. Sub-step two
+3. Third step
+
+### Task List
+
+- [x] Completed task
+- [ ] Incomplete task
+- [ ] Another pending task
+
+## Blockquotes
+
+> This is a blockquote. It can span multiple lines and is useful for highlighting important information or quotes from other sources.
+>
+> — Someone Famous
+
+### Nested Blockquote
+
+> Outer quote
+>
+> > Nested quote inside
+
+## Code
+
+### Inline Code
+
+Use the `console.log()` function to debug. The `useState` hook is essential in React.
+
+### Code Block
+
+```typescript
+interface User {
+  id: string
+  name: string
+  email: string
+}
+
+function greetUser(user: User): string {
+  return `Hello, ${user.name}!`
+}
+
+const user: User = {
+  id: "1",
+  name: "Kevin",
+  email: "kevin@example.com",
+}
+
+console.log(greetUser(user))
+```
+
+### Code Block with Different Language
+
+```python
+def fibonacci(n: int) -> int:
+    if n <= 1:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+for i in range(10):
+    print(fibonacci(i))
+```
+
+### Plain Code Block
+
+```
+This is a plain code block
+without syntax highlighting.
+Just monospace text.
+```
+
+## Tables
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Dark Mode | ✅ Done | Auto via prefers-color-scheme |
+| Typography | ✅ Done | Using @tailwindcss/typography |
+| Colors | ✅ Done | VitePress-inspired palette |
+| Animations | ⏳ Pending | To be added |
+
+### Aligned Table
+
+| Left | Center | Right |
+|:-----|:------:|------:|
+| L1 | C1 | R1 |
+| L2 | C2 | R2 |
+| L3 | C3 | R3 |
+
+## Horizontal Rule
+
+Text before the rule.
+
+---
+
+Text after the rule.
+
+## Images
+
+![Placeholder image](https://via.placeholder.com/600x300/f6f6f7/3c3c43?text=Sample+Image)
+
+## Emphasis Combinations
+
+- **Bold text**
+- *Italic text*
+- ***Bold and italic***
+- ~~Strikethrough~~
+- **Bold with *nested italic* inside**
+- `code` mixed with **bold** and *italic*
+
+## Definition-style Content
+
+**Term 1**
+: This is the definition of term 1.
+
+**Term 2**
+: This is the definition of term 2, which can be longer and span multiple lines if needed.
+
+## Footnote-style Links
+
+Here's a sentence with a reference[^1] and another reference[^2].
+
+[^1]: This is the first footnote.
+[^2]: This is the second footnote with more detail.
+
+## Keyboard Keys
+
+Press <kbd>Ctrl</kbd> + <kbd>C</kbd> to copy and <kbd>Ctrl</kbd> + <kbd>V</kbd> to paste.
+
+## Abbreviations
+
+The HTML specification is maintained by the W3C.
+
+## Summary
+
+This test file covers:
+- Text formatting (bold, italic, strikethrough)
+- Headings (H2-H5)
+- Lists (ordered, unordered, nested, tasks)
+- Blockquotes (simple and nested)
+- Code (inline and blocks with syntax highlighting)
+- Tables (simple and aligned)
+- Horizontal rules
+- Images
+- Links
+- Special elements (kbd, footnotes)
+

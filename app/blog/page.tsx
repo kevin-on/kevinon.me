@@ -46,7 +46,7 @@ export default async function BlogPage() {
         />
         <div>
           <h1 className="text-2xl font-bold">Kevin On</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-foreground-2 mt-1">
             I&apos;m a builder interested in AI consumer products, and a
             researcher curious about generative models, especially diffusion
             models.
@@ -56,19 +56,19 @@ export default async function BlogPage() {
               href="https://github.com/kevin-on"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              className="text-foreground-3 hover:text-brand"
             >
               GitHub
             </a>
             <CopyEmail email="kwanghyun.on@gmail.com" />
           </div>
           {(chessData.rapid || chessData.blitz) && (
-            <div className="flex gap-4 mt-3 text-sm text-gray-500">
+            <div className="flex gap-4 mt-3 text-sm text-foreground-3">
               <a
                 href="https://www.chess.com/member/kevin_on"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
+                className="flex items-center gap-1 hover:text-brand"
               >
                 ♟️ Chess.com:
                 {chessData.rapid && (
@@ -116,11 +116,15 @@ export default async function BlogPage() {
         {posts.map((post) => (
           <li key={post.slug}>
             <Link href={`/blog/${post.slug}`} className="block group">
-              <h3 className="text-lg font-semibold group-hover:underline">
+              <h3 className="text-lg font-semibold group-hover:text-brand">
                 {post.metadata.title}
               </h3>
-              <p className="text-sm text-gray-500 mt-1">{post.metadata.date}</p>
-              <p className="text-gray-600 mt-2">{post.metadata.description}</p>
+              <p className="text-sm text-foreground-3 mt-1">
+                {post.metadata.date}
+              </p>
+              <p className="text-foreground-2 mt-2">
+                {post.metadata.description}
+              </p>
             </Link>
           </li>
         ))}

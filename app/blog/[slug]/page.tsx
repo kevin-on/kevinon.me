@@ -10,10 +10,21 @@ type Params = {
 export async function generateStaticParams() {
   const contentDir = path.join(process.cwd(), "content")
   const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"))
+  const isProduction = process.env.NODE_ENV === "production"
 
-  return files.map((file) => ({
-    slug: file.replace(".mdx", ""),
-  }))
+  const params = await Promise.all(
+    files.map(async (file) => {
+      const slug = file.replace(".mdx", "")
+      const { metadata }: { metadata: PostMetadata } = await import(
+        `@/content/${slug}.mdx`
+      )
+      return { slug, draft: metadata.draft }
+    })
+  )
+
+  return params
+    .filter((p) => !isProduction || !p.draft)
+    .map(({ slug }) => ({ slug }))
 }
 
 export async function generateMetadata({ params }: Params) {

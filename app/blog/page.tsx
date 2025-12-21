@@ -9,6 +9,7 @@ import CopyEmail from "@/app/components/CopyEmail"
 async function getPosts(): Promise<Post[]> {
   const contentDir = path.join(process.cwd(), "content")
   const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"))
+  const isProduction = process.env.NODE_ENV === "production"
 
   const posts: Post[] = await Promise.all(
     files.map(async (file) => {
@@ -18,10 +19,13 @@ async function getPosts(): Promise<Post[]> {
     })
   )
 
-  return posts.sort(
-    (a, b) =>
-      new Date(b.metadata.date).getTime() - new Date(a.metadata.date).getTime()
-  )
+  return posts
+    .filter((post) => !isProduction || !post.metadata.draft)
+    .sort(
+      (a, b) =>
+        new Date(b.metadata.date).getTime() -
+        new Date(a.metadata.date).getTime()
+    )
 }
 
 function formatChange(change: number): string {

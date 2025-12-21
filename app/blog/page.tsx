@@ -46,7 +46,7 @@ export default async function BlogPage() {
           alt="Kevin On"
           width={80}
           height={80}
-          className="rounded-full"
+          className="rounded-full shrink-0 w-20 h-20 object-cover"
         />
         <div>
           <h1 className="text-2xl font-bold">Kevin On</h1>
@@ -74,7 +74,14 @@ export default async function BlogPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-brand"
               >
-                ♟️ Chess.com:
+                <Image
+                  src="/chesscom-icon-filled-256.png"
+                  alt="Chess.com"
+                  width={16}
+                  height={16}
+                  className="rounded-sm"
+                />
+                Chess.com:
                 {chessData.rapid && (
                   <span>
                     Rapid {chessData.rapid.current}{" "}

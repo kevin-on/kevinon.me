@@ -4,6 +4,7 @@ import fs from "fs"
 import path from "path"
 import type { Post } from "@/lib/types"
 import { getChessData } from "@/lib/chess"
+import CopyEmail from "@/app/components/CopyEmail"
 
 async function getPosts(): Promise<Post[]> {
   const contentDir = path.join(process.cwd(), "content")
@@ -59,12 +60,7 @@ export default async function BlogPage() {
             >
               GitHub
             </a>
-            <a
-              href="mailto:kwanghyun.on@gmail.com"
-              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              Email
-            </a>
+            <CopyEmail email="kwanghyun.on@gmail.com" />
           </div>
           {(chessData.rapid || chessData.blitz) && (
             <div className="flex gap-4 mt-3 text-sm text-gray-500">

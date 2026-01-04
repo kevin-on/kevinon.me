@@ -87,6 +87,11 @@ body {
   text-decoration: underline;
 }
 
+.prose hr {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
 .prose {
   /* Text colors */
   --tw-prose-body: var(--vp-c-text-1);

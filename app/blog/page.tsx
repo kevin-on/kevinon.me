@@ -129,13 +129,19 @@ export default async function BlogPage() {
             <Link href={`/blog/${post.slug}`} className="block group">
               <h3 className="text-lg font-semibold group-hover:text-brand">
                 {post.metadata.title}
+                <span className="font-normal text-sm text-foreground-3 ml-4">
+                  {new Date(post.metadata.date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
               </h3>
-              <p className="text-sm text-foreground-3 mt-1">
-                {post.metadata.date}
-              </p>
-              <p className="text-foreground-2 mt-2">
-                {post.metadata.description}
-              </p>
+              {post.metadata.description && (
+                <p className="text-foreground-2 mt-1">
+                  {post.metadata.description}
+                </p>
+              )}
             </Link>
           </li>
         ))}

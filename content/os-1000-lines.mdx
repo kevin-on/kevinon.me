@@ -1,0 +1,40 @@
+export const metadata = {
+  title: "My Experience with \"OS in 1000 Lines\"",
+  date: "2026-01-04",
+  description:
+    "A hands-on review of the OS in 1000 Lines tutorial",
+}
+
+I recently completed the ["OS in 1000 Lines"](https://operating-system-in-1000-lines.vercel.app/en/) tutorial, a hands-on guide to building a minimal operating system from scratch. Here's my honest take on the experience.
+
+## Who Is This Tutorial For?
+
+This tutorial works best if you already have some background in OS concepts. It focuses on _implementing_ rather than _explaining_ the fundamentals. If terms like context switching, virtual memory, or system calls feel unfamiliar, you'll want to study alongside the tutorial.
+
+## What I Learned
+
+### Revisiting OS Concepts
+
+The tutorial was a great refresher for OS concepts I'd learned years ago. Writing the code myself helped me understand things better than just reading about them.
+
+### Understanding What _Exactly_ Happens
+
+The most valuable part was seeing the precise mechanics of OS operations. Things like setting registers on kernel entry, context switches, and transitioning to user mode are more complex than I thought. Implementing them really helped bridge the gap between learning these concepts and understanding what actually happens.
+
+### Debugging an OS
+
+Debugging an OS is quite different from debugging a normal program. You can't just attach a debugger and step through code the way you're used to. The author does a good job explaining verification and debugging strategies, and I was able to get a sense of how OS debugging works.
+
+## The Drawbacks
+
+The tutorial presents OS code sequentially across chapters, but doesn't provide an overall picture of what you're building upfront. I found myself reading the provided code first, then trying to understand what was going on, rather than implementing it myself.
+
+If you're hoping to implement features without looking at the solutions, like having starter code with TODO comments, that's not the experience here. The code is all there, which makes it more of a "follow along and understand" exercise than a "build it yourself" challenge.
+
+## Final Thoughts
+
+I'd recommend this tutorial to any developer. It's lightweight, only about 12 hours total, and since all the code is provided, you can focus on understanding rather than struggling with implementation. It may not directly help your day-to-day work, but I had a lot of fun following it. Give it a try!
+
+---
+
+*My code and notes are available at [github.com/kevin-on/os-1000lines](https://github.com/kevin-on/os-1000lines).*

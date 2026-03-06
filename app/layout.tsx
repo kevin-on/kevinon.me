@@ -1,10 +1,42 @@
 import type { Metadata } from "next"
-import { Inter, Fira_Code } from "next/font/google"
+import localFont from "next/font/local"
+import { Fira_Code } from "next/font/google"
 import "./globals.css"
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
+const neueMontreal = localFont({
+  src: [
+    {
+      path: "../public/fonts/PPNeueMontreal-Thin.otf",
+      weight: "100",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/PPNeueMontreal-Book.otf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/PPNeueMontreal-Italic.otf",
+      weight: "400",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/PPNeueMontreal-Medium.otf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/PPNeueMontreal-SemiBolditalic.otf",
+      weight: "600",
+      style: "italic",
+    },
+    {
+      path: "../public/fonts/PPNeueMontreal-Bold.otf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-neue-montreal",
 })
 
 const firaCode = Fira_Code({
@@ -27,7 +59,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${firaCode.variable} antialiased`}>
+      <body className={`${neueMontreal.variable} ${firaCode.variable} antialiased`}>
         {children}
       </body>
     </html>

@@ -58,8 +58,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${neueMontreal.variable} ${firaCode.variable} antialiased`}>
+    <html lang="en" className={neueMontreal.variable}>
+      <body className={`${firaCode.variable} antialiased`}>
         {children}
       </body>
     </html>

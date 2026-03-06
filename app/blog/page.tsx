@@ -127,7 +127,7 @@ export default async function BlogPage() {
         {posts.map((post) => (
           <li key={post.slug}>
             <Link href={`/blog/${post.slug}`} className="block group">
-              <h3 className="text-lg font-semibold group-hover:text-brand">
+              <h3 className="text-lg font-medium group-hover:text-brand">
                 {post.metadata.title}
                 <span className="font-normal text-sm text-foreground-3 ml-4">
                   {new Date(post.metadata.date).toLocaleDateString("en-US", {

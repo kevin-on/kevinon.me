@@ -152,6 +152,23 @@ body {
   --tw-prose-invert-pre-bg: var(--vp-c-bg-soft);
 }
 
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+
+.prose :not(pre) > code {
+  background: color-mix(in oklab, var(--vp-c-text-1) 8%, var(--vp-c-bg));
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  padding: 0.15rem 0.35rem;
+}
+
+.prose p {
+  margin-top: 0.9em;
+  margin-bottom: 0.9em;
+}
+
 /* Task List Checkboxes */
 .prose ul:has(input[type="checkbox"]) {
   list-style: none;

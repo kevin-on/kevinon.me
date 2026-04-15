@@ -38,7 +38,7 @@ export default async function BlogPage() {
   const [posts, chessData] = await Promise.all([getPosts(), getChessData()])
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-12">
+    <main className="max-w-4xl mx-auto px-4 py-12">
       {/* Profile Section */}
       <section className="flex items-center gap-6 mb-12">
         <Image

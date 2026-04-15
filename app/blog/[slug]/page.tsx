@@ -49,7 +49,7 @@ export default async function BlogPostPage({ params }: Params) {
   )
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-12">
+    <main className="max-w-4xl mx-auto px-4 py-12">
       <Link href="/blog" className="text-sm text-foreground-3 hover:text-brand">
         ← Back to blog
       </Link>
@@ -58,7 +58,7 @@ export default async function BlogPostPage({ params }: Params) {
           <h1 className="text-3xl font-bold">{metadata.title}</h1>
           <p className="text-sm text-foreground-3 mt-2">{metadata.date}</p>
         </header>
-        <div className="prose prose-neutral dark:prose-invert">
+        <div className="prose max-w-none prose-neutral dark:prose-invert">
           <Post />
         </div>
       </article>

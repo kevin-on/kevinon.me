@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import localFont from "next/font/local"
-import { Fira_Code } from "next/font/google"
+import { Fira_Code, IBM_Plex_Sans } from "next/font/google"
 import "./globals.css"
 
 const neueMontreal = localFont({
@@ -44,6 +44,19 @@ const firaCode = Fira_Code({
   subsets: ["latin"],
 })
 
+const ibmPlexSans = IBM_Plex_Sans({
+  variable: "--font-ibm-plex-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+})
+
+const fontVariables = [
+  neueMontreal.variable,
+  ibmPlexSans.variable,
+  firaCode.variable,
+].join(" ")
+
 export const metadata: Metadata = {
   title: "Kevin On",
   description: "Kevin On's personal website",
@@ -58,10 +71,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={neueMontreal.variable}>
-      <body className={`${firaCode.variable} antialiased`}>
-        {children}
-      </body>
+    <html lang="en" className={fontVariables}>
+      <body className="antialiased">{children}</body>
     </html>
   )
 }

@@ -49,7 +49,7 @@ export default async function BlogPostPage({ params }: Params) {
   )
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-12">
+    <main className="max-w-3xl mx-auto px-4 py-12">
       <Link href="/blog" className="text-sm text-foreground-3 hover:text-brand">
         ← Back to blog
       </Link>

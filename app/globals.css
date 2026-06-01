@@ -62,18 +62,31 @@
   --color-brand-soft: var(--vp-c-brand-soft);
   --color-divider: var(--vp-c-divider);
 
-  /* Typography - VitePress uses Inter */
-  --font-sans: var(--font-neue-montreal), ui-sans-serif, system-ui,
+  /* Typography */
+  --font-display: var(--font-neue-montreal), ui-sans-serif, system-ui,
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
     Helvetica, Arial, "Noto Sans", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Helvetica, Arial, "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans",
+    sans-serif;
+  --font-mono: var(--font-fira-code), ui-monospace, SFMono-Regular, "SF Mono",
+    Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 body {
   background: var(--vp-c-bg);
   color: var(--vp-c-text-1);
   font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
 }
 
 /* Prose overrides to use VitePress colors */
@@ -93,6 +106,10 @@ body {
 }
 
 .prose {
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+
   /* Text colors */
   --tw-prose-body: var(--vp-c-text-1);
   --tw-prose-headings: var(--vp-c-text-1);
@@ -152,6 +169,14 @@ body {
   --tw-prose-invert-pre-bg: var(--vp-c-bg-soft);
 }
 
+.prose :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-display);
+}
+
+.prose :where(code, kbd, pre) {
+  font-family: var(--font-mono);
+}
+
 .prose :not(pre) > code::before,
 .prose :not(pre) > code::after {
   content: none;
@@ -161,7 +186,14 @@ body {
   background: color-mix(in oklab, var(--vp-c-text-1) 8%, var(--vp-c-bg));
   border: 1px solid var(--vp-c-divider);
   border-radius: 4px;
+  font-family: var(--font-mono) !important;
   padding: 0.15rem 0.35rem;
+}
+
+.prose pre,
+.prose pre code,
+.prose kbd {
+  font-family: var(--font-mono) !important;
 }
 
 .prose p {

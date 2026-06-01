@@ -123,10 +123,11 @@ Use brand colors for interactive elements like links and buttons.
 
 | Tailwind Class | Font | Usage |
 |----------------|------|-------|
-| `font-sans` | Inter | All UI text (default) |
-| `font-mono` | System monospace | Code, technical content |
+| `font-sans` | IBM Plex Sans | Body text and default UI text |
+| `font-display` | PP Neue Montreal | Headings and display text |
+| `font-mono` | Fira Code | Code, technical content |
 
-The body uses `font-sans` by default (set in `globals.css`).
+The body uses `font-sans` by default (set in `globals.css`). Headings use `font-display`, and markdown article content keeps the sans-serif base with a wider line-height for readability.
 
 **Example:**
 ```tsx
@@ -226,5 +227,4 @@ If explicit dark mode overrides are needed, use Tailwind's dark variant:
 ## File Reference
 
 - **`app/globals.css`** — All CSS variables and Tailwind theme tokens
-- **`app/layout.tsx`** — Font loading (Inter, Fira Code)
-
+- **`app/layout.tsx`** — Font loading (PP Neue Montreal, IBM Plex Sans, Fira Code)

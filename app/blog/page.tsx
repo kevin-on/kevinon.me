@@ -51,9 +51,8 @@ export default async function BlogPage() {
         <div>
           <h1 className="text-2xl font-bold">Kevin On</h1>
           <p className="text-foreground-2 mt-1">
-            I&apos;m a builder interested in AI consumer products, and a
-            researcher curious about generative models, especially diffusion
-            models.
+            Mostly interested in robotics. Also into AI products, chess, and
+            soccer.
           </p>
           <div className="flex gap-4 mt-3">
             <a

@@ -1,0 +1,44 @@
+export const metadata = {
+  title: "Robot-Native Learning",
+  date: "2026-06-01",
+  description:
+    "Thinking through simulation, touch, and human priors in robotics.",
+}
+
+I have recently been exploring robotics, and I keep noticing a gap between the directions that get the most attention and the problems that may matter most in the long run. This essay is my attempt to think through that gap.
+
+## 1. Simulation and Scalability
+
+Richard Sutton's essay ["The Bitter Lesson"](http://www.incompleteideas.net/IncIdeas/BitterLesson.html) argues that the most durable progress in AI comes from general methods that scale with computation. The success of large language models is the most recent example: once the field found a substrate where data and compute could scale together, progress accelerated.
+
+In robotics, many current data strategies still depend on human behavior. Teleoperation, UMI-style collection, human videos, and human-to-robot video editing are clever and useful, but they feel secondary in this sense: they make human-derived data easier to use. They do not create an unlimited source of robot experience.
+
+The deeper scaling problem is that robots need to learn from their own interaction with the world. They need to act, fail, recover, and improve. Simulation is the natural substrate for this because it allows interaction at compute scale.
+
+The real world should then serve as the judge that keeps simulation honest. Robots can learn broadly in simulation, test in reality, update the simulator, and repeat.
+
+## 2. The Tactile Bottleneck
+
+Manipulation still feels much harder than whole-body motion. Robots are becoming impressive at walking, balancing, and moving their bodies, but hands remain brittle. The reason may be simple: manipulation is a contact problem.
+
+Humans do not manipulate mainly by looking. We can often pick up a cup or a key without looking at it. Once contact begins, touch tells us whether the object is stable, slipping, or being squeezed too hard. A robot that relies mostly on vision and proprioception is closer to a human with numb fingers: it can still act, but it becomes slow and unreliable.
+
+The key issue is that vision does not directly reveal contact. Two grasps can look the same and have the same proprioceptive state, while the forces are different. One may be stable, another may be about to slip, and another may be damaging the object. Without touch, the robot simply cannot tell these cases apart.
+
+Despite this, current robotics leans heavily on vision because vision is easier to scale. Cameras are cheap, images are easy to store, and modern AI already works very well with images and videos. Touch does not have the same infrastructure. Tactile data is harder to collect, harder to standardize, and harder to simulate. But this convenience may be misleading: for manipulation, the important information is often not in the image, but in the contact.
+
+## 3. Beyond Human Imitation
+
+The third issue is the tendency to treat human imitation as the natural goal. This is understandable. Human-shaped robots fit human environments, and humanlike behavior makes it easier to use human demonstrations and videos.
+
+But what is easy to imitate is not necessarily what is optimal. The human body is not a generally superior physical design; it is worse than other animals at many physical tasks. Even Boston Dynamics' latest Atlas, while humanoid, uses ["strategic departures"](https://bostondynamics.com/blog/training-a-humanoid-robot-for-hard-work/) from the human form: for example, its torso can rotate in ways a human torso cannot. This is the important point: strict human imitation is not necessarily the best use of robot hardware.
+
+The same applies to motion. People are often fascinated when humanoids move naturally, such as kicking a ball or carrying an object in a humanlike way. But robots have different actuators, different joints, and different constraints. If the body works differently, the best motion may also look different.
+
+The bias toward human form also appears in manipulation. Many robots have two arms and humanlike hands because that matches human demonstrations. But why should a useful robot have only two arms? For some tasks, four, eight, or more manipulators may be better. The design space is much larger than the human body.
+
+This raises the deeper question: how can we explore new forms of robots, and how can we train them? Much of current research is still constrained by humanlike bodies, human trajectories, and human priors. But the more a robot departs from the human body, the less useful those priors become. Human demonstrations do not tell an eight-armed robot how to move. Just as AlphaZero found moves that looked strange to human players at first, capable robots may also end up with bodies and motions that look strange to us.
+
+## Closing Thought
+
+Many current robotics trends naturally inherit human priors: how data is collected, what sensors are emphasized, what bodies are built, and what motions look impressive. These priors are useful starting points. But they should remain starting points. In the long term, robotics will need to move beyond them. It seems worth asking more carefully where these human assumptions help, and where they quietly limit what robots could become.

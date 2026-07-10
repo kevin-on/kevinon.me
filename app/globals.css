@@ -1,30 +1,35 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  /* VitePress Brand Colors */
-  --vp-c-brand-1: #646cff;
-  --vp-c-brand-2: #747bff;
-  --vp-c-brand-3: #535bf2;
-  --vp-c-brand-soft: rgba(100, 108, 255, 0.14);
+  color-scheme: light;
 
-  /* Background Colors */
-  --vp-c-bg: #ffffff;
-  --vp-c-bg-alt: #f6f6f7;
-  --vp-c-bg-elv: #ffffff;
-  --vp-c-bg-soft: #f6f6f7;
+  /* Modern Paper Brand Colors */
+  --vp-c-brand-1: #205ea6;
+  --vp-c-brand-2: #4385be;
+  --vp-c-brand-3: #163b66;
+  --vp-c-brand-soft: rgba(32, 94, 166, 0.12);
 
-  /* Text Colors */
-  --vp-c-text-1: rgba(60, 60, 67);
-  --vp-c-text-2: rgba(60, 60, 67, 0.78);
-  --vp-c-text-3: rgba(60, 60, 67, 0.56);
+  /* Modern Paper Background Colors */
+  --vp-c-bg: #fefbf5;
+  --vp-c-bg-alt: #f8f3ea;
+  --vp-c-bg-elv: #fffefb;
+  --vp-c-bg-soft: #f5efe5;
+
+  /* Modern Paper Text Colors */
+  --vp-c-text-1: #27241f;
+  --vp-c-text-2: rgba(39, 36, 31, 0.76);
+  --vp-c-text-3: rgba(39, 36, 31, 0.55);
 
   /* Divider */
-  --vp-c-divider: rgba(60, 60, 67, 0.12);
+  --vp-c-divider: #e5dcce;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
+
     /* VitePress Dark Mode Brand Colors */
     --vp-c-brand-1: #646cff;
     --vp-c-brand-2: #747bff;
@@ -45,6 +50,38 @@
     /* Dark Divider */
     --vp-c-divider: rgba(82, 82, 89, 0.32);
   }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --vp-c-brand-1: #205ea6;
+  --vp-c-brand-2: #4385be;
+  --vp-c-brand-3: #163b66;
+  --vp-c-brand-soft: rgba(32, 94, 166, 0.12);
+  --vp-c-bg: #fefbf5;
+  --vp-c-bg-alt: #f8f3ea;
+  --vp-c-bg-elv: #fffefb;
+  --vp-c-bg-soft: #f5efe5;
+  --vp-c-text-1: #27241f;
+  --vp-c-text-2: rgba(39, 36, 31, 0.76);
+  --vp-c-text-3: rgba(39, 36, 31, 0.55);
+  --vp-c-divider: #e5dcce;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --vp-c-brand-1: #646cff;
+  --vp-c-brand-2: #747bff;
+  --vp-c-brand-3: #535bf2;
+  --vp-c-brand-soft: rgba(100, 108, 255, 0.16);
+  --vp-c-bg: #1b1b1f;
+  --vp-c-bg-alt: #161618;
+  --vp-c-bg-elv: #202127;
+  --vp-c-bg-soft: #202127;
+  --vp-c-text-1: rgba(255, 255, 245, 0.86);
+  --vp-c-text-2: rgba(235, 235, 245, 0.6);
+  --vp-c-text-3: rgba(235, 235, 245, 0.38);
+  --vp-c-divider: rgba(82, 82, 89, 0.32);
 }
 
 @theme inline {
@@ -78,6 +115,32 @@ body {
   background: var(--vp-c-bg);
   color: var(--vp-c-text-1);
   font-family: var(--font-sans);
+}
+
+.theme-icon-sun {
+  display: inline-flex;
+}
+
+.theme-icon-moon {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-icon-sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-icon-moon {
+  display: inline-flex;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-icon-sun {
+    display: none;
+  }
+
+  :root:not([data-theme]) .theme-icon-moon {
+    display: inline-flex;
+  }
 }
 
 h1,
@@ -199,6 +262,25 @@ h6 {
 .prose p {
   margin-top: 0.9em;
   margin-bottom: 0.9em;
+}
+
+.prose .tikz-figure img {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: min(100%, 32rem);
+  opacity: 0.76;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .prose .tikz-figure img {
+    filter: invert(1);
+    opacity: 0.86;
+  }
+}
+
+:root[data-theme="dark"] .prose .tikz-figure img {
+  filter: invert(1);
+  opacity: 0.86;
 }
 
 /* Task List Checkboxes */

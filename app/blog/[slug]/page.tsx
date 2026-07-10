@@ -1,6 +1,7 @@
 import fs from "fs"
 import path from "path"
 import Link from "next/link"
+import ThemeToggle from "@/app/components/ThemeToggle"
 import type { PostMetadata } from "@/lib/types"
 
 type Params = {
@@ -50,9 +51,15 @@ export default async function BlogPostPage({ params }: Params) {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-12">
-      <Link href="/blog" className="text-sm text-foreground-3 hover:text-brand">
-        ← Back to blog
-      </Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          href="/blog"
+          className="text-sm text-foreground-3 hover:text-brand"
+        >
+          ← Back to blog
+        </Link>
+        <ThemeToggle />
+      </div>
       <article className="mt-6">
         <header className="mb-8">
           <h1 className="text-3xl font-bold">{metadata.title}</h1>

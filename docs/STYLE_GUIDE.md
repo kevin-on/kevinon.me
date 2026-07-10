@@ -1,8 +1,8 @@
 # Style Guide
 
-This style guide documents the design tokens and conventions used in this website. The design system is inspired by [VitePress's default theme](https://vitepress.dev/guide/extending-default-theme) and implemented with Tailwind CSS v4.
+This style guide documents the design tokens and conventions used in this website. The light palette uses the warm Modern Paper theme, while the dark palette retains its VitePress-inspired colors. The system is implemented with Tailwind CSS v4.
 
-All tokens are defined in `app/globals.css` and automatically adapt to light/dark mode via `prefers-color-scheme`.
+All tokens are defined in `app/globals.css`. The initial theme follows `prefers-color-scheme`, while the theme toggle can explicitly select light or dark mode.
 
 ---
 
@@ -19,9 +19,9 @@ Use semantic text colors instead of hardcoded values like `text-gray-500`.
 | `text-foreground-3` | `--color-foreground-3` | Tertiary text (dates, captions, muted labels) |
 
 **Light Mode Values:**
-- `foreground`: `rgba(60, 60, 67)` — near black
-- `foreground-2`: `rgba(60, 60, 67, 0.78)` — 78% opacity
-- `foreground-3`: `rgba(60, 60, 67, 0.56)` — 56% opacity
+- `foreground`: `#27241f` — warm near black
+- `foreground-2`: `rgba(39, 36, 31, 0.76)` — 76% opacity
+- `foreground-3`: `rgba(39, 36, 31, 0.55)` — 55% opacity
 
 **Dark Mode Values:**
 - `foreground`: `rgba(255, 255, 245, 0.86)` — warm white
@@ -48,11 +48,17 @@ Use brand colors for interactive elements like links and buttons.
 | `text-brand-3` | `--color-brand-3` | Pressed/active state |
 | `bg-brand-soft` | `--color-brand-soft` | Soft background highlight |
 
-**Values:**
+**Light Mode Values:**
+- `brand`: `#205ea6` — ink blue
+- `brand-2`: `#4385be` — lighter blue (hover)
+- `brand-3`: `#163b66` — darker blue (active)
+- `brand-soft`: `rgba(32, 94, 166, 0.12)` — subtle highlight
+
+**Dark Mode Values:**
 - `brand`: `#646cff` — purple-blue
 - `brand-2`: `#747bff` — lighter purple-blue (hover)
 - `brand-3`: `#535bf2` — darker purple-blue (active)
-- `brand-soft`: `rgba(100, 108, 255, 0.14)` — subtle highlight
+- `brand-soft`: `rgba(100, 108, 255, 0.16)` — subtle highlight
 
 **Examples:**
 ```tsx
@@ -78,10 +84,10 @@ Use brand colors for interactive elements like links and buttons.
 | `bg-background-soft` | `--color-background-soft` | Subtle highlights, code blocks |
 
 **Light Mode Values:**
-- `background`: `#ffffff`
-- `background-alt`: `#f6f6f7`
-- `background-elv`: `#ffffff`
-- `background-soft`: `#f6f6f7`
+- `background`: `#fefbf5`
+- `background-alt`: `#f8f3ea`
+- `background-elv`: `#fffefb`
+- `background-soft`: `#f5efe5`
 
 **Dark Mode Values:**
 - `background`: `#1b1b1f`
@@ -212,11 +218,16 @@ The prose styles inherit VitePress colors via CSS variable overrides in `globals
 
 ---
 
-## Dark Mode
+## Theme Modes
 
-Dark mode is automatic via `prefers-color-scheme: dark`. All color tokens switch values automatically — no manual dark mode classes required.
+The theme toggle offers `System`, `Light`, and `Dark`:
 
-If explicit dark mode overrides are needed, use Tailwind's dark variant:
+- `System` is the default and follows `prefers-color-scheme`.
+- Explicit `Light` or `Dark` choices are stored under `theme-preference` in `localStorage`.
+- `data-theme` on `<html>` contains the effective theme; `data-theme-choice` contains the user's selection.
+- The initialization script in `app/layout.tsx` applies the theme before hydration to prevent a flash of the wrong palette.
+
+Tailwind's `dark` variant follows the effective `data-theme` value:
 
 ```tsx
 <div className="bg-background dark:bg-background-alt">...</div>
@@ -227,4 +238,5 @@ If explicit dark mode overrides are needed, use Tailwind's dark variant:
 ## File Reference
 
 - **`app/globals.css`** — All CSS variables and Tailwind theme tokens
+- **`app/components/ThemeToggle.tsx`** — Theme menu and persisted user preference
 - **`app/layout.tsx`** — Font loading (PP Neue Montreal, IBM Plex Sans, Fira Code)

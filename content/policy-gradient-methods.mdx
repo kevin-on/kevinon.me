@@ -1,0 +1,1970 @@
+export const metadata = {
+  title: "Policy Gradient Methods",
+  date: "2026-07-10",
+  description:
+    "From REINFORCE to actor-critic, GAE, TRPO, and PPO.",
+}
+
+In the previous post, we set up the reinforcement learning problem and looked at value functions and Bellman equations. These let us describe how good a given policy is. But we have not yet seen how to actually find a good policy.
+
+Suppose the policy is parameterized by $\theta$, written as $\pi_\theta(a_t \mid s_t)$. Together with the environment dynamics, this policy defines a distribution over trajectories:
+
+$$
+p_\theta(\tau)
+=
+p_0(s_0)
+\prod_{t=0}^{T-1}
+\pi_\theta(a_t \mid s_t)
+p(r_t, s_{t+1} \mid s_t, a_t) .
+$$
+
+As before, we want the policy to generate trajectories with high total reward. We write this objective as
+
+$$
+J(\theta)
+=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1} \gamma^t r_t
+\right] .
+$$
+
+So we want to find parameters that maximize $J(\theta)$:
+
+$$
+\theta^*
+\in
+\operatorname*{arg\,max}_\theta J(\theta) .
+$$
+
+Policy gradient methods try to do this using the gradient $\nabla_\theta J(\theta)$. The basic idea is to adjust $\theta$ in a direction that increases the expected return.
+
+## The Policy Gradient
+
+To differentiate $J(\theta)$, we use a simple chain-rule identity:
+
+$$
+\nabla_\theta p_\theta(\tau)
+=
+p_\theta(\tau)\nabla_\theta \log p_\theta(\tau) .
+$$
+
+Then
+
+$$
+\begin{aligned}
+\nabla_\theta J(\theta)
+&=
+\nabla_\theta
+\int
+p_\theta(\tau)
+\left[
+\sum_{t=0}^{T-1} \gamma^t r_t
+\right]
+d\tau \\
+&=
+\int
+\nabla_\theta p_\theta(\tau)
+\left[
+\sum_{t=0}^{T-1} \gamma^t r_t
+\right]
+d\tau \\
+&=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\nabla_\theta \log p_\theta(\tau)
+\left(
+\sum_{t=0}^{T-1} \gamma^t r_t
+\right)
+\right] .
+\end{aligned}
+$$
+
+Now expand the log probability of a trajectory:
+
+$$
+\log p_\theta(\tau)
+=
+\log p_0(s_0)
++
+\sum_{t=0}^{T-1}
+\log \pi_\theta(a_t \mid s_t)
++
+\sum_{t=0}^{T-1}
+\log p(r_t, s_{t+1} \mid s_t, a_t) .
+$$
+
+The initial state distribution and dynamics do not depend on $\theta$, so their gradients disappear:
+
+$$
+\nabla_\theta \log p_\theta(\tau)
+=
+\sum_{t=0}^{T-1}
+\nabla_\theta
+\log \pi_\theta(a_t \mid s_t) .
+$$
+
+Therefore, the policy gradient becomes
+
+$$
+\nabla_\theta J(\theta)
+=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\left(
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\right)
+\left(
+\sum_{t=0}^{T-1}
+\gamma^t r_t
+\right)
+\right] .
+$$
+
+This is the basic policy gradient expression.
+
+## REINFORCE
+
+Since the expectation over trajectories is usually intractable, we sample trajectories and use them to estimate $\nabla_\theta J(\theta)$. This leads to the REINFORCE algorithm.[^williams1992-reinforce]
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: REINFORCE} \\
+\hline
+\textbf{repeat} \\
+\quad \text{Sample trajectories } \{\tau_i\}_{i=1}^{N},\quad \tau_i \sim p_\theta(\tau) \\
+\quad \hat{g} \leftarrow
+\displaystyle \frac{1}{N}
+\sum_{i=1}^{N}
+\left[
+\left(
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_{i,t} \mid s_{i,t})
+\right)
+\left(
+\sum_{t=0}^{T-1}
+\gamma^t r_{i,t}
+\right)
+\right] \\
+\quad \theta \leftarrow \theta + \alpha \hat{g} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+The Monte Carlo estimator is unbiased:
+
+$$
+\mathbb{E}[\hat{g}] = \nabla_\theta J(\theta).
+$$
+
+### What Is Wrong With REINFORCE?
+
+In practice, the basic REINFORCE algorithm does not work very well. To see why, we need to look at the estimator more carefully.
+
+Let
+
+$$
+R(\tau)
+=
+\sum_{t=0}^{T-1}\gamma^t r_t
+$$
+
+denote the return of a trajectory. Compare the two estimators:
+
+$$
+\begin{aligned}
+\text{Maximum likelihood:}\quad
+&\hat{g}_{\mathrm{ML}}
+=
+\frac{1}{N}
+\sum_{i=1}^{N}
+\nabla_\theta \log p_\theta(\tau_i) \\
+\text{REINFORCE:}\quad
+&\hat{g}_{\mathrm{RF}}
+=
+\frac{1}{N}
+\sum_{i=1}^{N}
+\nabla_\theta \log p_\theta(\tau_i)
+R(\tau_i)
+\end{aligned}
+$$
+
+The REINFORCE estimator has the same likelihood-gradient term as maximum likelihood, but each sampled trajectory is weighted by its return. This means we can interpret it as a reward-weighted maximum likelihood objective: trajectories with high return are made more likely, and trajectories with low return are made less likely.
+
+Now suppose we add the same constant $c$ to the return of every trajectory:
+
+$$
+R_c(\tau)
+=
+R(\tau)+c .
+$$
+
+Since every trajectory receives the same bonus, their relative quality does not change. So the best policy should not change either. In fact,
+
+$$
+J_c(\theta)
+=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+R(\tau)+c
+\right]
+=
+J(\theta)+c,
+$$
+
+and therefore
+
+$$
+\nabla_\theta J_c(\theta)
+=
+\nabla_\theta J(\theta) .
+$$
+
+Using the shifted returns, the REINFORCE estimator becomes
+
+$$
+\hat{g}_c
+=
+\frac{1}{N}
+\sum_{i=1}^{N}
+\nabla_\theta \log p_\theta(\tau_i)
+\left(
+R(\tau_i)+c
+\right) .
+$$
+
+Suppose $c$ is large enough that all the shifted returns $R(\tau_i)+c$ are positive. Then every sampled trajectory contributes an update that increases its likelihood, whether that trajectory was relatively good or bad. If $c$ is very negative, every shifted return can become negative, and the update pushes all the sampled trajectories in the opposite direction.
+
+Still, the estimator is unbiased. The effect of $c$ disappears in expectation:
+
+$$
+\begin{aligned}
+\mathbb{E}[\hat{g}_c]
+&=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\nabla_\theta \log p_\theta(\tau)
+\left(
+R(\tau)+c
+\right)
+\right] \\
+&=
+\nabla_\theta J(\theta)
++
+c\nabla_\theta
+\int p_\theta(\tau)\,d\tau \\
+&=
+\nabla_\theta J(\theta) .
+\end{aligned}
+$$
+
+So these extra updates cancel out on average, but not necessarily within a finite batch. In other words, the REINFORCE estimator is unbiased but can have high variance.
+
+## Improving the Policy Gradient Estimator
+
+### Reducing Variance With Baselines
+
+To address the problem above, we can think of shifting the returns before using them in the gradient so that positive and negative updates are better balanced. In fact, subtracting a baseline from the returns leaves the estimator unbiased. The baseline can even depend on the current state.
+
+Theorem. Let $b:\mathcal{S}\to\mathbb{R}$ be a deterministic state-dependent baseline. The following estimator is still an unbiased estimator of $\nabla_\theta J(\theta)$:
+
+$$
+\hat{\nabla}_\theta J(\theta)
+=
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\left(
+R(\tau)-b(s_t)
+\right).
+$$
+
+Proof. The only thing we need to show is that the baseline term has expectation zero:
+
+$$
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)b(s_t)
+\right]
+=0.
+$$
+
+For a fixed time $t$, condition on the partial trajectory up to state $s_t$:
+
+$$
+\tau^{(t)} = (s_0,a_0,r_0,\ldots,s_{t-1},a_{t-1},r_{t-1},s_t).
+$$
+
+Once we condition on $\tau^{(t)}$, the state $s_t$ is fixed, so $b(s_t)$ is also fixed. The only remaining random variable in the baseline term is the action $a_t \sim \pi_\theta(\cdot \mid s_t)$:
+
+$$
+\begin{aligned}
+&\mathbb{E}
+\left[
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)b(s_t)
+\mid \tau^{(t)}
+\right] \\
+&=
+b(s_t)
+\sum_{a_t}
+\pi_\theta(a_t \mid s_t)
+\nabla_\theta \log \pi_\theta(a_t \mid s_t) \\
+&=
+b(s_t)
+\sum_{a_t}
+\nabla_\theta \pi_\theta(a_t \mid s_t) \\
+&=
+b(s_t)
+\nabla_\theta
+\sum_{a_t}
+\pi_\theta(a_t \mid s_t) \\
+&=
+b(s_t)\nabla_\theta 1
+=0.
+\end{aligned}
+$$
+
+By the tower property, the expectation of each baseline term is zero, so their sum is also zero. Therefore subtracting $b(s_t)$ does not change the expected policy gradient. It can only change the variance of the estimator.
+
+### Removing Past Rewards
+
+Another variance-reduction trick is to remove rewards that happened before the action. In the original estimator, each score term is multiplied by the full return:
+
+$$
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\left(
+\sum_{t'=0}^{T-1}
+\gamma^{t'}r_{t'}
+\right).
+$$
+
+For the action $a_t$, this full return contains two parts:
+
+$$
+\sum_{t'=0}^{T-1}
+\gamma^{t'}r_{t'}
+=
+\sum_{t'=0}^{t-1}
+\gamma^{t'}r_{t'}
++
+\sum_{t'=t}^{T-1}
+\gamma^{t'}r_{t'}.
+$$
+
+The term $\nabla_\theta \log \pi_\theta(a_t \mid s_t)$ tells us how to change the policy parameters to make action $a_t$ more or less likely. But rewards before time $t$ are already fixed when $a_t$ is chosen, so they should not affect this update.
+
+Theorem. The following estimator, which uses the reward-to-go, is still an unbiased estimator of $\nabla_\theta J(\theta)$:
+
+$$
+\hat{\nabla}_\theta J(\theta)
+=
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\gamma^t
+\left(
+\sum_{t'=t}^{T-1}
+\gamma^{t'-t}r_{t'}
+\right).
+$$
+
+Proof. Consider the part we remove:
+
+$$
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\left(
+\sum_{t'=0}^{t-1}
+\gamma^{t'}r_{t'}
+\right).
+$$
+
+For a fixed time $t$, condition on
+
+$$
+\tau^{(t)} = (s_0,a_0,r_0,\ldots,s_{t-1},a_{t-1},r_{t-1},s_t).
+$$
+
+Given $\tau^{(t)}$, the past rewards $r_0,\ldots,r_{t-1}$ and state $s_t$ are fixed. The only random term is $a_t \sim \pi_\theta(\cdot \mid s_t)$:
+
+$$
+\begin{aligned}
+&\mathbb{E}
+\left[
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\left(
+\sum_{t'=0}^{t-1}
+\gamma^{t'}r_{t'}
+\right)
+\mid \tau^{(t)}
+\right] \\
+&=
+\left(
+\sum_{t'=0}^{t-1}
+\gamma^{t'}r_{t'}
+\right)
+\sum_{a_t}
+\pi_\theta(a_t \mid s_t)
+\nabla_\theta \log \pi_\theta(a_t \mid s_t) \\
+&=
+\left(
+\sum_{t'=0}^{t-1}
+\gamma^{t'}r_{t'}
+\right)
+\nabla_\theta
+\sum_{a_t}
+\pi_\theta(a_t \mid s_t) \\
+&=
+\left(
+\sum_{t'=0}^{t-1}
+\gamma^{t'}r_{t'}
+\right)
+\nabla_\theta 1
+=0.
+\end{aligned}
+$$
+
+By the tower property, the removed past-reward terms have zero expectation. Therefore removing them does not change the expected policy gradient, but it can reduce variance. After this step, each action is weighted only by the rewards from that time onward.
+
+### Q-Estimates
+
+Removing past rewards gives us the reward-to-go. This is better than using the full trajectory return, but it is still a sampled quantity from one rollout.
+
+The next idea is to replace this sampled reward-to-go with its conditional expectation. That conditional expectation is exactly the state-action value:
+
+$$
+Q^{\pi_\theta}(s_t,a_t)
+=
+\mathbb{E}
+\left[
+\sum_{t'=t}^{T-1}
+\gamma^{t'-t}r_{t'}
+\mid s_t,a_t
+\right].
+$$
+
+So Q-estimates reduce variance by replacing a noisy sampled reward-to-go with an estimate of its expected value.
+
+Theorem. The following estimator is an unbiased estimator of $\nabla_\theta J(\theta)$:
+
+$$
+\hat{\nabla}_\theta J(\theta)
+=
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\gamma^t
+Q^{\pi_\theta}(s_t,a_t)
+$$
+
+(More generally, we can replace $Q^{\pi_\theta}(s_t,a_t)$ with any $\hat{Q}_t$ satisfying $\mathbb{E}[\hat{Q}_t \mid \tau^{(t)}, a_t]=Q^{\pi_\theta}(s_t,a_t)$.)
+
+Proof. The reward-to-go has conditional expectation
+
+$$
+\mathbb{E}
+\left[
+\sum_{t'=t}^{T-1}
+\gamma^{t'-t}r_{t'}
+\mid \tau^{(t)}, a_t
+\right]
+=
+Q^{\pi_\theta}(s_t,a_t).
+$$
+
+Therefore,
+
+$$
+\mathbb{E}
+\left[
+\sum_{t'=t}^{T-1}
+\gamma^{t'-t}r_{t'} - Q^{\pi_\theta}(s_t,a_t)
+\mid \tau^{(t)}, a_t
+\right]
+=0.
+$$
+
+Using the tower property,
+
+$$
+\begin{aligned}
+&\mathbb{E}
+\left[
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\gamma^t
+\left(
+\sum_{t'=t}^{T-1}
+\gamma^{t'-t}r_{t'} - Q^{\pi_\theta}(s_t,a_t)
+\right)
+\right] \\
+&=
+\mathbb{E}
+\left[
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\gamma^t
+\mathbb{E}
+\left[
+\sum_{t'=t}^{T-1}
+\gamma^{t'-t}r_{t'} - Q^{\pi_\theta}(s_t,a_t)
+\mid \tau^{(t)}, a_t
+\right]
+\right] \\
+&=0.
+\end{aligned}
+$$
+
+Combining the ideas above, we get the final unbiased estimator:
+
+$$
+\nabla_\theta J(\theta)
+=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\gamma^t
+\left(
+Q^{\pi_\theta}(s_t,a_t) - b(s_t)
+\right)
+\right].
+$$
+
+### Choice of Baseline
+
+For a fixed state $s$, the baseline that minimizes the variance of the corresponding policy-gradient term has the form
+
+$$
+b^*(s)
+=
+\frac{
+\mathbb{E}_{a \sim \pi_\theta(\cdot \mid s)}
+\left[
+\left\|\nabla_\theta \log \pi_\theta(a \mid s)\right\|^2 Q^{\pi_\theta}(s,a)
+\mid s
+\right]
+}{
+\mathbb{E}_{a \sim \pi_\theta(\cdot \mid s)}
+\left[
+\left\|\nabla_\theta \log \pi_\theta(a \mid s)\right\|^2
+\mid s
+\right]
+},
+$$
+
+<details>
+<summary>Derivation</summary>
+
+For convenience, let
+
+$$
+w(s,a)=\left\|\nabla_\theta \log \pi_\theta(a \mid s)\right\|.
+$$
+
+For a fixed state $s$, we want to choose $b(s)$ to minimize the conditional second moment
+
+$$
+\mathbb{E}_{a \sim \pi_\theta(\cdot \mid s)}
+\left[
+w(s,a)^2
+\left(
+Q^{\pi_\theta}(s,a)-b(s)
+\right)^2
+\mid s
+\right].
+$$
+
+Expanding around $b^*(s)$,
+
+$$
+\begin{aligned}
+&\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2
+\left(
+Q^{\pi_\theta}(s,a)-b(s)
+\right)^2
+\right] \\
+&=
+\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2
+\left(
+Q^{\pi_\theta}(s,a)-b^*(s)+b^*(s)-b(s)
+\right)^2
+\right] \\
+&=
+\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2
+\left(
+Q^{\pi_\theta}(s,a)-b^*(s)
+\right)^2
+\right] \\
+&\quad+
+\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2
+\left(
+b^*(s)-b(s)
+\right)^2
+\right] \\
+&\quad+
+2\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2
+\left(
+Q^{\pi_\theta}(s,a)-b^*(s)
+\right)
+\left(
+b^*(s)-b(s)
+\right)
+\right].
+\end{aligned}
+$$
+
+The cross term is zero by the definition of $b^*(s)$:
+
+$$
+\begin{aligned}
+&\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2
+\left(
+Q^{\pi_\theta}(s,a)-b^*(s)
+\right)
+\left(
+b^*(s)-b(s)
+\right)
+\right] \\
+&=
+\left(
+\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2Q^{\pi_\theta}(s,a)
+\right]
+-
+\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2
+\right]b^*(s)
+\right)
+\left(
+b^*(s)-b(s)
+\right) \\
+&=0.
+\end{aligned}
+$$
+
+Therefore,
+
+$$
+\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2
+\left(
+Q^{\pi_\theta}(s,a)-b(s)
+\right)^2
+\right]
+\ge
+\mathbb{E}_{a \mid s}
+\left[
+w(s,a)^2
+\left(
+Q^{\pi_\theta}(s,a)-b^*(s)
+\right)^2
+\right],
+$$
+
+with equality when $b(s)=b^*(s)$.
+
+</details>
+
+This exact baseline is cumbersome because of the gradient-magnitude weight. A common simplification is to remove this weight, which gives:
+
+$$
+b(s)
+\approx
+\frac{
+\mathbb{E}_{a \sim \pi_\theta(\cdot \mid s)}
+\left[
+Q^{\pi_\theta}(s,a)
+\mid s
+\right]
+}{
+\mathbb{E}_{a \sim \pi_\theta(\cdot \mid s)}
+\left[
+1
+\mid s
+\right]
+}
+=
+V^{\pi_\theta}(s).
+$$
+
+In practice, $V^{\pi_\theta}$ is also unknown, so we usually approximate it with a learned value function $V_\phi$:
+
+$$
+b(s)=V_\phi(s).
+$$
+
+Using $V_\phi$ as the baseline still gives an unbiased estimator, because the baseline can be any deterministic function of the state. The approximation affects variance, not the expected gradient:
+
+$$
+\nabla_\theta J(\theta)
+=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\gamma^t
+\left(
+Q^{\pi_\theta}(s_t,a_t)-V_\phi(s_t)
+\right)
+\right].
+$$
+
+However, $Q^{\pi_\theta}$ is also generally intractable. In practice, we may replace it with a learned function $Q_\phi$:
+
+$$
+\nabla_\theta J(\theta)
+\approx
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\gamma^t
+\left(
+Q_\phi(s_t,a_t)-V_\phi(s_t)
+\right)
+\right].
+$$
+
+Unlike using $V_\phi$ only as a baseline, replacing $Q^{\pi_\theta}$ with $Q_\phi$ can introduce bias unless $Q_\phi$ is exact.
+
+### Toward a Practical Algorithm
+
+The expression above seems to require both $Q_\phi$ and $V_\phi$. In practice, we usually avoid learning both separately.
+
+From the one-step transition property,
+
+$$
+Q^{\pi_\theta}(s_t,a_t)
+=
+\mathbb{E}
+\left[
+r_t+\gamma V^{\pi_\theta}(s_{t+1})
+\mid s_t,a_t
+\right].
+$$
+
+So, given one sampled transition $(s_t,a_t,r_t,s_{t+1})$, we can estimate the $Q$ term by
+
+$$
+\hat{Q}_t
+=
+r_t+\gamma V_\phi(s_{t+1}).
+$$
+
+This turns the policy-gradient term into
+
+$$
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)\gamma^t
+\left(
+r_t+\gamma V_\phi(s_{t+1})-V_\phi(s_t)
+\right).
+$$
+
+Now the main remaining question is how to learn $V_\phi$.
+
+## Policy Evaluation
+
+Policy evaluation is the problem of estimating the value function of a fixed policy.
+
+Even if the policy $\pi$ is known exactly, computing $V^\pi$ is not always easy. Also, when the state space is large or infinite, we cannot store the value for every state. In practice, we approximate the value function with a neural network $V_\phi$.
+
+### Monte Carlo
+
+The first thing we can try is to use the rewards from sampled trajectories directly. If a trajectory starts from $s_0=s$, then the return from that trajectory gives a sample estimate of $V^\pi(s)$:
+
+$$
+V^\pi(s)
+=
+\mathbb{E}
+\left[
+\sum_{t=0}^{T-1}\gamma^t r_t
+\mid s_0=s
+\right].
+$$
+
+So we can fit $V_\phi$ to the sampled return:
+
+$$
+V_\phi(s_0)
+\approx
+\sum_{t=0}^{T-1}\gamma^t r_t.
+$$
+
+More generally, for a state $s_t$ inside a trajectory, the Monte Carlo target is the return from that time onward:
+
+$$
+V_\phi(s_t)
+\approx
+\sum_{t'=t}^{T-1}\gamma^{t'-t}r_{t'}.
+$$
+
+The Monte Carlo target is unbiased, but it can have high variance because different trajectories from the same state can produce very different returns. Reducing this variance would require averaging many trajectories from the same state, which is generally not feasible.
+
+### Temporal Difference
+
+This leads to temporal difference learning. Instead of waiting for the full trajectory, TD uses one transition and the one-step Bellman relation:
+
+$$
+V^\pi(s)
+=
+\mathbb{E}
+\left[
+r_0+\gamma V^\pi(s_1)
+\mid s_0=s
+\right].
+$$
+
+With $N$ independent one-step transitions from $s$, this can be estimated as
+
+$$
+V^\pi(s)
+\approx
+\frac{1}{N}
+\sum_{i=1}^{N}
+\left(
+r_0^{(i)}+\gamma V^\pi(s_1^{(i)})
+\right).
+$$
+
+Of course, $V^\pi$ is unknown. In practice, we replace it with $V_\phi$ and use the one-step target
+
+$$
+y_t
+=
+r_t+\gamma V_\phi(s_{t+1}).
+$$
+
+Then $V_\phi$ is updated to make $V_\phi(s_t)$ closer to $y_t$:
+
+$$
+\mathcal{L}(\phi)
+=
+\frac{1}{2}
+\left(
+V_\phi(s_t)-y_t
+\right)^2.
+$$
+
+As TD depends only on a single transition rather than a full trajectory, it usually has lower variance than Monte Carlo. However, errors in $V_\phi(s_{t+1})$ make the target biased. The value estimate can also be inaccurate and change quickly, especially early in training, which can make learning unstable.
+
+### $k$-Step TD
+
+$k$-step TD sits between Monte Carlo and one-step TD. It uses the next $k$ rewards from the trajectory and a value estimate for the remaining return:
+
+$$
+V^\pi(s_t)
+=
+\mathbb{E}
+\left[
+\sum_{i=0}^{k-1}\gamma^i r_{t+i}
++
+\gamma^k V^\pi(s_{t+k})
+\mid s_t
+\right].
+$$
+
+In practice, we use the target
+
+$$
+y_t^{(k)}
+=
+\sum_{i=0}^{k-1}\gamma^i r_{t+i}
++
+\gamma^k V_\phi(s_{t+k}).
+$$
+
+Then $V_\phi$ is updated toward this $k$-step target:
+
+$$
+\mathcal{L}(\phi)
+=
+\frac{1}{2}
+\left(
+V_\phi(s_t)-y_t^{(k)}
+\right)^2.
+$$
+
+When $k=1$, this becomes one-step TD. When $k$ reaches the end of the episode, it becomes Monte Carlo. Between these two extremes, a smaller $k$ usually gives lower variance but more bias, while a larger $k$ gives higher variance but less bias.
+
+### Semi-Gradient TD
+
+To see how TD is implemented, first write the value-fitting objective as
+
+$$
+\mathcal{L}(\phi)
+=
+\mathbb{E}_{s \sim p_0^\pi}
+\left[
+\frac{1}{2}
+\left(
+V_\phi(s)-V^\pi(s)
+\right)^2
+\right].
+$$
+
+Using the one-step Bellman relation, the gradient can be written as
+
+$$
+\nabla_\phi \mathcal{L}(\phi)
+=
+\mathbb{E}
+\left[
+\left(
+V_\phi(s_t)-r_t-\gamma V^\pi(s_{t+1})
+\right)
+\nabla_\phi V_\phi(s_t)
+\right].
+$$
+
+This would be exact if $V^\pi(s_{t+1})$ were known, but it is not actionable in practice. TD replaces it with the current estimate $V_\phi(s_{t+1})$:
+
+$$
+g_t
+=
+\left(
+V_\phi(s_t)-r_t-\gamma V_\phi(s_{t+1})
+\right)
+\nabla_\phi V_\phi(s_t).
+$$
+
+The practical way to implement this is to use a stop-gradient on the target:
+
+$$
+\mathcal{L}_{TD}(\phi)
+=
+\frac{1}{2}
+\left(
+V_\phi(s_t)-r_t-\gamma \operatorname{sg}[V_\phi(s_{t+1})]
+\right)^2.
+$$
+
+Here $\operatorname{sg}[\cdot]$ treats its input as a constant during backpropagation. In PyTorch, this is `.detach()`. Therefore,
+
+$$
+\nabla_\phi \mathcal{L}_{TD}(\phi)
+=
+\left(
+V_\phi(s_t)-r_t-\gamma V_\phi(s_{t+1})
+\right)
+\nabla_\phi V_\phi(s_t).
+$$
+
+This is different from directly minimizing the Bellman error
+
+$$
+\frac{1}{2}
+\left(
+V_\phi(s_t)-r_t-\gamma V_\phi(s_{t+1})
+\right)^2,
+$$
+
+because the full gradient would also differentiate through $V_\phi(s_{t+1})$:
+
+$$
+\nabla_\phi
+\frac{1}{2}
+\left(
+V_\phi(s_t)-r_t-\gamma V_\phi(s_{t+1})
+\right)^2
+=
+\left(
+V_\phi(s_t)-r_t-\gamma V_\phi(s_{t+1})
+\right)
+\nabla_\phi
+\left(
+V_\phi(s_t)-\gamma V_\phi(s_{t+1})
+\right).
+$$
+
+So TD with stop-gradient is a semi-gradient method. It uses the current next-state value to form the target, but it does not update the parameters through that target.
+
+There are also methods that try to directly optimize a true gradient objective for TD, often called gradient TD (GTD) methods.[^sutton2008-gtd][^sutton2009-gtd2] The original GTD algorithm is provably convergent, but it can be much slower than conventional TD in settings where conventional TD is stable.[^sutton2009-gtd2]
+
+## Actor-Critic Algorithm
+
+Now we can put the pieces together.
+
+Using the $k$-step TD target, define
+
+$$
+\hat{Q}_t^{(k)}
+=
+\sum_{i=0}^{k-1}\gamma^i r_{t+i}
++
+\gamma^k V_\phi(s_{t+k}).
+$$
+
+Then the advantage estimate is
+
+$$
+\hat{A}_t^{(k)}
+=
+\hat{Q}_t^{(k)}-V_\phi(s_t).
+$$
+
+For the discounted-return objective, the policy-gradient update becomes:
+
+$$
+\nabla_\theta J(\theta)
+\approx
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)\gamma^t \hat{A}_t^{(k)}.
+$$
+
+However, many actor-critic implementations drop the outer $\gamma^t$ factor and use
+
+$$
+\nabla_\theta J(\theta)
+\approx
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)\hat{A}_t^{(k)}.
+$$
+
+Dropping this factor means that the update no longer exactly matches the discounted-return objective.[^thomas2014-policy-gradient] But in many practical settings, the discount factor is introduced mainly to reduce variance, make the return well-defined, and stabilize value estimation. We usually do not want the policy to ignore later states just because they occur later in the trajectory; we want the policy to behave well at every time step. So we keep $\gamma$ inside the TD target, but we often remove the extra time-dependent weight from the actor update. In the algorithm below, I will use this common practical version.
+
+The critic update fits $V_\phi(s_t)$ to the $k$-step TD target:
+
+$$
+\hat{Q}_t^{(k)}
+=
+\sum_{i=0}^{k-1}\gamma^i r_{t+i}
++
+\gamma^k \operatorname{sg}[V_\phi(s_{t+k})],
+$$
+
+$$
+\mathcal{L}_{critic}(\phi)
+=
+\frac{1}{2}
+\left(
+V_\phi(s_t)-\hat{Q}_t^{(k)}
+\right)^2.
+$$
+
+Putting this together, the algorithm looks like this:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: Actor-Critic} \\
+\hline
+\text{Initialize policy parameters } \theta \text{ and value parameters } \phi \\
+\textbf{repeat} \\
+\quad g_\theta \leftarrow 0,\quad g_\phi \leftarrow 0 \\
+\quad \text{Sample trajectory } \tau \sim p_\theta(\tau) \\
+\quad \textbf{for } t=0,1,\ldots,T-1 \textbf{ do} \\
+\quad\quad \hat{Q}_t^{(k)} \leftarrow
+\displaystyle
+\sum_{i=0}^{k-1}\gamma^i r_{t+i}
++
+\gamma^k V_\phi(s_{t+k}) \\
+\quad\quad \hat{A}_t^{(k)} \leftarrow \hat{Q}_t^{(k)} - V_\phi(s_t) \\
+\quad\quad g_\theta \leftarrow g_\theta
++ \nabla_\theta \log \pi_\theta(a_t \mid s_t)\hat{A}_t^{(k)} \\
+\quad\quad g_\phi \leftarrow g_\phi
++ \nabla_\phi
+\frac{1}{2}
+\left(
+\operatorname{sg}[\hat{Q}_t^{(k)}]-V_\phi(s_t)
+\right)^2 \\
+\quad \textbf{end for} \\
+\quad \theta \leftarrow \theta + \frac{\alpha_\pi}{T}g_\theta \\[4pt]
+\quad \phi \leftarrow \phi - \frac{\alpha_V}{T}g_\phi \\[4pt]
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+This is called actor-critic because the policy acts, and the value function plays the role of a critic that evaluates the action.
+
+## Generalized Advantage Estimation (GAE)
+
+We used a $k$-step TD target to estimate the advantage. This gives a bias-variance tradeoff: small $k$ is more TD-like, so it usually has lower variance but more bias; large $k$ is more Monte Carlo-like, so it usually has lower bias but higher variance.
+
+Generalized Advantage Estimation (GAE) gives a smoother way to control this tradeoff.[^schulman2016-gae] First, define the $k$-step TD advantage estimator:
+
+$$
+\hat{A}_t^{TD(k)}
+=
+\sum_{i=0}^{k-1}\gamma^i r_{t+i}
++
+\gamma^k V(s_{t+k})
+-
+V(s_t).
+$$
+
+GAE takes an exponentially weighted average of these estimators with $\lambda \in [0,1]$:
+
+$$
+\hat{A}_t^{GAE(\gamma,\lambda)}
+=
+(1-\lambda)
+\left(
+\hat{A}_t^{TD(1)}
++
+\lambda \hat{A}_t^{TD(2)}
++
+\lambda^2 \hat{A}_t^{TD(3)}
++
+\cdots
+\right).
+$$
+
+Note that the weights sum to one:
+
+$$
+(1-\lambda)
+\sum_{k=1}^{\infty}
+\lambda^{k-1}
+=
+1.
+$$
+
+The parameter $\lambda$ lets us smoothly control the bias-variance tradeoff. Larger $\lambda$ puts more weight on larger $k$-step estimates, so it has lower bias but higher variance. Smaller $\lambda$ puts more weight on smaller $k$-step estimates, so it has lower variance but higher bias.
+
+When $\lambda=0$, GAE becomes the one-step TD advantage estimate:
+
+$$
+\hat{A}_t^{GAE(\gamma,0)}
+=
+\hat{A}_t^{TD(1)}.
+$$
+
+When $\lambda=1$, it becomes the Monte Carlo-style advantage estimate:
+
+$$
+\hat{A}_t^{GAE(\gamma,1)}
+=
+\hat{A}_t^{TD(\infty)}.
+$$
+
+GAE can also be written in a cleaner form:
+
+$$
+\hat{A}_t^{GAE(\gamma,\lambda)}
+=
+\sum_{l=0}^{\infty}
+(\gamma\lambda)^l\delta_{t+l}^V.
+$$
+
+where
+
+$$
+\delta_t^V
+=
+r_t+\gamma V(s_{t+1})-V(s_t)
+$$
+
+is the TD residual. It measures how different the current value estimate is from the one-step Bellman target.
+
+<details>
+<summary>Derivation of the geometric-sum form</summary>
+
+Start from the weighted sum of $k$-step estimators:
+
+$$
+\hat{A}_t^{GAE(\gamma,\lambda)}
+=
+(1-\lambda)
+\sum_{k=1}^{\infty}
+\lambda^{k-1}
+\hat{A}_t^{TD(k)}.
+$$
+
+Using
+
+$$
+\hat{A}_t^{TD(k)}
+=
+\sum_{i=0}^{k-1}\gamma^i r_{t+i}
++
+\gamma^k V(s_{t+k})
+-
+V(s_t)
+=
+\sum_{l=0}^{k-1}\gamma^l\delta_{t+l}^V,
+$$
+
+where the second equality follows from the telescoping sum
+
+$$
+\sum_{l=0}^{k-1}\gamma^l\delta_{t+l}^V
+=
+\sum_{l=0}^{k-1}
+\gamma^l
+\left(
+r_{t+l}+\gamma V(s_{t+l+1})-V(s_{t+l})
+\right)
+=
+\sum_{l=0}^{k-1}\gamma^l r_{t+l}
++
+\gamma^k V(s_{t+k})
+-
+V(s_t).
+$$
+
+we get
+
+$$
+\hat{A}_t^{GAE(\gamma,\lambda)}
+=
+(1-\lambda)
+\sum_{k=1}^{\infty}
+\lambda^{k-1}
+\sum_{l=0}^{k-1}\gamma^l\delta_{t+l}^V.
+$$
+
+Now collect the coefficient of each $\delta_{t+l}^V$. The term $\delta_{t+l}^V$ appears in every $k$-step estimator with $k \ge l+1$, so its coefficient is
+
+$$
+(1-\lambda)
+\sum_{k=l+1}^{\infty}
+\lambda^{k-1}\gamma^l
+=
+\gamma^l(1-\lambda)
+\sum_{k=l+1}^{\infty}
+\lambda^{k-1}.
+$$
+
+Since
+
+$$
+\sum_{k=l+1}^{\infty}
+\lambda^{k-1}
+=
+\lambda^l+\lambda^{l+1}+\cdots
+=
+\frac{\lambda^l}{1-\lambda},
+$$
+
+the coefficient becomes
+
+$$
+\gamma^l(1-\lambda)\frac{\lambda^l}{1-\lambda}
+=
+(\gamma\lambda)^l.
+$$
+
+Therefore,
+
+$$
+\hat{A}_t^{GAE(\gamma,\lambda)}
+=
+\sum_{l=0}^{\infty}
+(\gamma\lambda)^l\delta_{t+l}^V.
+$$
+
+</details>
+
+## Advanced Policy Gradient Methods
+
+### A Surrogate Objective for Policy Updates
+
+We will rewrite the objective so that we can compare a new policy with the current policy.
+
+Let $\theta_0$ be the current policy parameters, and let $\theta$ be the parameters of a new policy.
+
+Let $T$ be the length of a sampled trajectory, and assume that $s_T$ is terminal, so $V^{\pi_{\theta_0}}(s_T)=0$.
+
+Claim:
+
+$$
+J(\theta)-J(\theta_0)
+=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+A^{\pi_{\theta_0}}(s_t,a_t)
+\right].
+$$
+
+The trajectory is sampled from the new policy $\pi_\theta$, while the advantage is evaluated using the current policy $\pi_{\theta_0}$.
+
+Proof:
+
+$$
+\begin{aligned}
+J(\theta)-J(\theta_0)
+&=
+J(\theta)
+-
+\mathbb{E}_{s_0 \sim p_0}
+\left[
+V^{\pi_{\theta_0}}(s_0)
+\right] \\
+&=
+J(\theta)
+-
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+V^{\pi_{\theta_0}}(s_0)
+\right] \\
+&=
+J(\theta)
+-
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}\gamma^t V^{\pi_{\theta_0}}(s_t)
+-
+\sum_{t=1}^{T}\gamma^t V^{\pi_{\theta_0}}(s_t)
+\right] \\
+&=
+J(\theta)
++
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\left(
+\gamma V^{\pi_{\theta_0}}(s_{t+1})
+-
+V^{\pi_{\theta_0}}(s_t)
+\right)
+\right] \\
+&=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t r_t
+\right]
++
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\left(
+\gamma V^{\pi_{\theta_0}}(s_{t+1})
+-
+V^{\pi_{\theta_0}}(s_t)
+\right)
+\right] \\
+&=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\left(
+r_t
++
+\gamma V^{\pi_{\theta_0}}(s_{t+1})
+-
+V^{\pi_{\theta_0}}(s_t)
+\right)
+\right] \\
+&=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\left(
+Q^{\pi_{\theta_0}}(s_t,a_t)
+-
+V^{\pi_{\theta_0}}(s_t)
+\right)
+\right] \\
+&=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+A^{\pi_{\theta_0}}(s_t,a_t)
+\right].
+\end{aligned}
+$$
+
+Since $J(\theta_0)$ is fixed, we want to maximize
+
+$$
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+A^{\pi_{\theta_0}}(s_t,a_t)
+\right].
+$$
+
+The problem is that this expectation is over trajectories from the new policy $\pi_\theta$, but the data we have comes from the current policy $\pi_{\theta_0}$.
+
+For each state visited along the trajectory, we can rewrite the action expectation using importance sampling:
+
+$$
+\mathbb{E}_{a_t \sim \pi_\theta(\cdot \mid s_t)}
+\left[
+\gamma^t A^{\pi_{\theta_0}}(s_t,a_t)
+\right]
+=
+\mathbb{E}_{a_t \sim \pi_{\theta_0}(\cdot \mid s_t)}
+\left[
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_0}(a_t \mid s_t)}
+\gamma^t A^{\pi_{\theta_0}}(s_t,a_t)
+\right].
+$$
+
+This changes the action sampling from $\pi_\theta$ to $\pi_{\theta_0}$, but the state distribution is still $p_\theta(s_t)$. To reuse data from $\pi_{\theta_0}$, we make a local approximation: if $\pi_\theta$ is close to $\pi_{\theta_0}$, then the two policies choose similar actions and should visit similar states. Therefore,
+
+$$
+p_\theta(s_t) \approx p_{\theta_0}(s_t).
+$$
+
+This approximation is only reasonable for small policy updates, which is why we need a constraint that keeps $\pi_\theta$ close to $\pi_{\theta_0}$. With this approximation, we define the surrogate objective
+
+$$
+\begin{aligned}
+\mathcal{K}(\theta;\theta_0)
+&=
+\mathbb{E}_{\tau \sim (p_0,\pi_{\theta_0},p)}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_0}(a_t \mid s_t)}
+A^{\pi_{\theta_0}}(s_t,a_t)
+\right]
+\end{aligned}
+$$
+
+Therefore, we maximize this surrogate objective subject to a constraint that keeps $\pi_\theta$ close to $\pi_{\theta_0}$:
+
+$$
+\begin{aligned}
+\max_\theta \quad
+&\mathcal{K}(\theta;\theta_0)
+\\
+\text{subject to} \quad
+&
+\pi_\theta \text{ and } \pi_{\theta_0} \text{ close}.
+\end{aligned}
+$$
+
+In practice, with IID trajectories $\tau^{(1)},\ldots,\tau^{(N)} \sim (p_0,\pi_{\theta_0},p)$, we estimate the surrogate objective by
+
+$$
+\mathcal{K}(\theta;\theta_0)
+\overset{(*)}{\approx}
+\frac{1}{N}
+\sum_{i=1}^{N}
+\sum_{t=0}^{T^{(i)}-1}
+\gamma^t
+\frac{\pi_\theta(a_t^{(i)} \mid s_t^{(i)})}
+{\pi_{\theta_0}(a_t^{(i)} \mid s_t^{(i)})}
+\hat{A}_t^{(i)},
+$$
+
+where $\hat{A}_t \approx A^{\pi_{\theta_0}}(s_t,a_t)$ is an advantage estimate.
+
+The trust-region constraint also helps with $(*)$: importance sampling estimates can have high variance when the target policy $\pi_\theta$ is too far from the behavior policy $\pi_{\theta_0}$, because the ratios $\pi_\theta(a_t \mid s_t) / \pi_{\theta_0}(a_t \mid s_t)$ can become large.
+
+### Trust Region Policy Optimization (TRPO)
+
+In practice, TRPO constrains the average KL divergence over states visited by the current policy.[^schulman2015-trpo] The constraint is
+
+$$
+\begin{aligned}
+\max_{\theta} \quad
+&\mathcal{K}(\theta;\theta_0) \\
+\text{subject to} \quad
+&\mathbb{E}_{s_t \sim p_{\theta_0}(s_t)}
+\left[
+D_{KL}
+\left(
+\pi_{\theta_0}(\cdot \mid s_t)
+\;\|\;
+\pi_{\theta}(\cdot \mid s_t)
+\right)
+\right]
+\le \epsilon.
+\end{aligned}
+$$
+
+To get a tractable update, TRPO locally approximates both the surrogate objective and the KL constraint. Let
+
+$$
+\Delta \theta = \theta - \theta_0
+$$
+
+and let
+
+$$
+g
+=
+\left.
+\nabla_\theta \mathcal{K}(\theta;\theta_0)
+\right|_{\theta=\theta_0}.
+$$
+
+Here $g$ is the usual gradient of the surrogate objective at the current policy.
+
+First, approximate the surrogate objective by a first-order Taylor expansion:
+
+$$
+\mathcal{K}(\theta_0+\Delta\theta;\theta_0)
+\approx
+\mathcal{K}(\theta_0;\theta_0)
++
+g^T\Delta\theta.
+$$
+
+The dot product $g^T\Delta\theta$ measures the projection of the step $\Delta\theta$ onto the improvement direction $g$.
+
+Since $\mathcal{K}(\theta_0;\theta_0)$ is fixed, locally we just want to maximize this projection:
+
+$$
+g^T\Delta\theta.
+$$
+
+Next, define $F$ as the second derivative of this policy-space KL at the current policy:
+
+$$
+F
+=
+\left.
+\nabla_\theta^2
+\mathbb{E}_{s_t \sim p_{\theta_0}(s_t)}
+\left[
+D_{KL}
+\left(
+\pi_{\theta_0}(\cdot \mid s_t)
+\;\|\;
+\pi_{\theta}(\cdot \mid s_t)
+\right)
+\right]
+\right|_{\theta=\theta_0}.
+$$
+
+This matrix $F$ is the Fisher information matrix used by TRPO. It is the local curvature of the KL constraint around the current policy.
+
+Equivalently, we can write it as the expected outer product of the policy score:
+
+$$
+F
+=
+\mathbb{E}_{s_t \sim p_{\theta_0}(s_t),\ a_t \sim \pi_{\theta_0}(\cdot \mid s_t)}
+\left[
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)^T
+\right]_{\theta=\theta_0}.
+$$
+
+This form is useful because it can be estimated from samples collected using the current policy.
+
+Then, for small $\Delta\theta$, the KL constraint becomes
+
+$$
+\mathbb{E}_{s_t \sim p_{\theta_0}(s_t)}
+\left[
+D_{KL}
+\left(
+\pi_{\theta_0}(\cdot \mid s_t)
+\;\|\;
+\pi_{\theta_0+\Delta\theta}(\cdot \mid s_t)
+\right)
+\right]
+\approx
+\frac{1}{2}
+\Delta\theta^T F \Delta\theta,
+$$
+
+So the local TRPO step becomes
+
+$$
+\begin{aligned}
+\max_{\Delta\theta} \quad
+&g^T\Delta\theta \\
+\text{subject to} \quad
+&\frac{1}{2}\Delta\theta^T F \Delta\theta \le \epsilon.
+\end{aligned}
+$$
+
+This local problem has the solution
+
+$$
+\Delta\theta
+=
+\alpha F^{-1}g,
+$$
+
+where
+
+$$
+\alpha
+=
+\sqrt{
+\frac{2\epsilon}
+{g^T F^{-1}g}
+}.
+$$
+
+So the local update is
+
+$$
+\theta
+=
+\theta_0
++
+\sqrt{
+\frac{2\epsilon}
+{g^T F^{-1}g}
+}
+F^{-1}g.
+$$
+
+Geometrically, this update chooses the step with the largest projection onto the improvement direction while keeping the approximate KL change within $\epsilon$.
+
+<details>
+
+<summary>Derivation of the local step</summary>
+
+Using a Lagrange multiplier, the local constrained problem is
+
+$$
+\begin{aligned}
+\max_{\Delta\theta} \quad
+&g^T\Delta\theta \\
+\text{subject to} \quad
+&\frac{1}{2}\Delta\theta^T F \Delta\theta \le \epsilon.
+\end{aligned}
+$$
+
+The Lagrangian is
+
+$$
+\mathcal{L}(\Delta\theta,\lambda)
+=
+g^T\Delta\theta
+-
+\lambda
+\left(
+\frac{1}{2}\Delta\theta^T F\Delta\theta
+-
+\epsilon
+\right).
+$$
+
+Taking the derivative with respect to $\Delta\theta$ gives
+
+$$
+g-\lambda F\Delta\theta = 0.
+$$
+
+Therefore,
+
+$$
+\Delta\theta
+=
+\frac{1}{\lambda}
+F^{-1}g.
+$$
+
+Write this as
+
+$$
+\Delta\theta = \alpha F^{-1}g.
+$$
+
+Plugging it into the approximate KL constraint gives
+
+$$
+\frac{1}{2}
+\alpha^2
+g^T F^{-1}g
+=
+\epsilon.
+$$
+
+Solving for $\alpha$ gives
+
+$$
+\alpha
+=
+\sqrt{
+\frac{2\epsilon}
+{g^T F^{-1}g}
+}.
+$$
+
+</details>
+
+The resulting algorithm is:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: TRPO} \\
+\hline
+\textbf{repeat} \\
+\quad \theta_0 \leftarrow \theta \\
+\quad \text{Sample trajectories } \tau^{(1)},\ldots,\tau^{(N)}
+      \sim (p_0,\pi_{\theta_0},p) \\
+\quad \text{Estimate advantages } \hat{A}_t^{(i)}
+      \text{, typically using GAE} \\
+\quad \text{Compute the sampled surrogate objective:} \\
+\quad \widehat{\mathcal{K}}(\theta;\theta_0)
+      \leftarrow
+      \frac{1}{N}
+      \sum_{i=1}^{N}
+      \sum_{t=0}^{T^{(i)}-1}
+      \gamma^t
+      \frac{
+      \pi_\theta(a_t^{(i)} \mid s_t^{(i)})
+      }{
+      \pi_{\theta_0}(a_t^{(i)} \mid s_t^{(i)})
+      }
+      \hat{A}_t^{(i)} \\
+\quad g \leftarrow
+      \left.
+      \nabla_\theta
+      \widehat{\mathcal{K}}(\theta;\theta_0)
+      \right|_{\theta=\theta_0} \\
+\quad \text{Approximately solve } F x = g
+      \text{ using Fisher-vector products, so } x \approx F^{-1}g \\
+\quad \Delta\theta \leftarrow
+      \sqrt{
+      \frac{2\epsilon}
+      {g^T x}
+      }
+      x \\
+\quad \theta \leftarrow \theta_0 + \Delta\theta \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+As in the actor-critic methods above, many practical implementations drop the outer $\gamma^t$ factor in the policy update.
+
+In practice, the hard part is computing $F^{-1}g$ without explicitly forming or inverting the full Fisher matrix. TRPO uses conjugate gradients and Fisher-vector products for this; see the TRPO paper for details.[^schulman2015-trpo]
+
+### Proximal Policy Optimization (PPO)
+
+TRPO is conceptually nice: it tries to improve the policy while keeping the new policy close to the old one. But the update uses second-order optimization, which can be inefficient compared to ordinary SGD-style updates.
+
+So the natural question is: can we keep the trust-region idea, but optimize with a normal first-order method like SGD or Adam?
+
+This is the idea behind PPO.[^schulman2017-ppo] (The PPO paper presents PPO-Penalty and PPO-Clip. I will talk about the simpler PPO-Clip.)
+
+For one sampled transition, PPO-Clip replaces the original surrogate term
+
+$$
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+\hat{A}_t
+$$
+
+with the clipped term
+
+$$
+\begin{aligned}
+\mathcal{C}_\epsilon
+\left(
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)},
+\hat{A}_t
+\right)
+&=
+\begin{cases}
+\min
+\left(
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)},
+1+\epsilon
+\right)
+\hat{A}_t,
+& \hat{A}_t \ge 0,
+\\
+\max
+\left(
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)},
+1-\epsilon
+\right)
+\hat{A}_t,
+& \hat{A}_t < 0.
+\end{cases}
+\\
+&=
+\min
+\left(
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+\hat{A}_t,
+\operatorname{clip}
+\left(
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)},
+1-\epsilon,
+1+\epsilon
+\right)
+\hat{A}_t
+\right).
+\end{aligned}
+$$
+
+Now let's look at the gradient.
+
+For the original, unclipped surrogate term, the gradient is
+
+$$
+\nabla_\theta
+\left(
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+\hat{A}_t
+\right)
+=
+\hat{A}_t
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t).
+$$
+
+Recall that the vanilla policy-gradient term is
+
+$$
+\hat{A}_t
+\nabla_\theta \log \pi_\theta(a_t \mid s_t).
+$$
+
+
+So the unclipped term is just a weighted policy gradient, where the weight is the policy ratio.
+
+After clipping, the gradient becomes
+
+$$
+\nabla_\theta
+\mathcal{C}_\epsilon
+\left(
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)},
+\hat{A}_t
+\right)
+=
+\begin{cases}
+\hat{A}_t
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t),
+& \hat{A}_t \ge 0
+\text{ and }
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+< 1+\epsilon,
+\\
+0,
+& \hat{A}_t \ge 0
+\text{ and }
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+> 1+\epsilon,
+\\
+\hat{A}_t
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t),
+& \hat{A}_t < 0
+\text{ and }
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+> 1-\epsilon,
+\\
+0,
+& \hat{A}_t < 0
+\text{ and }
+\frac{\pi_\theta(a_t \mid s_t)}
+{\pi_{\theta_k}(a_t \mid s_t)}
+< 1-\epsilon.
+\end{cases}
+$$
+
+So PPO is applying a weighted policy gradient, but stops once a sample has already moved enough in that direction. In this sense, clipping plays a role similar to a trust-region constraint.
+
+Putting this together, PPO-Clip looks like this:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: PPO-Clip} \\
+\hline
+\textbf{repeat} \\
+\quad \theta_k \leftarrow \theta \\
+\quad \text{Sample trajectories } \tau^{(1)},\ldots,\tau^{(N)}
+      \sim (p_0,\pi_{\theta_k},p) \\
+\quad \text{Estimate advantages } \hat{A}_t^{(i)}
+      \text{, typically using GAE} \\
+\\
+\quad \textbf{for } e=1,\ldots,K \textbf{ do} \\
+\quad\quad \text{Split sampled transitions into minibatches } B \\
+\\
+\quad\quad \textbf{for each minibatch } B \textbf{ do} \\
+\quad\quad\quad
+\widehat{\mathcal{L}}_{\mathrm{clip}}(\theta;B)
+\leftarrow
+\frac{1}{|B|}
+\sum_{(i,t)\in B}
+\min
+\left(
+\frac{\pi_\theta(a_t^{(i)}\mid s_t^{(i)})}
+{\pi_{\theta_k}(a_t^{(i)}\mid s_t^{(i)})}
+\hat A_t^{(i)},
+\operatorname{clip}
+\left(
+\frac{\pi_\theta(a_t^{(i)}\mid s_t^{(i)})}
+{\pi_{\theta_k}(a_t^{(i)}\mid s_t^{(i)})},
+1-\epsilon,
+1+\epsilon
+\right)
+\hat A_t^{(i)}
+\right)
+\\
+\\
+\quad\quad\quad
+g \leftarrow
+\nabla_\theta
+\widehat{\mathcal{L}}_{\mathrm{clip}}(\theta;B)
+\\
+\\
+\quad\quad\quad
+\theta \leftarrow \theta + \alpha g
+\\
+\quad\quad \textbf{end for} \\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+In practice, PPO typically uses GAE to estimate the advantages and trains the value function on the same batch alongside the policy.
+
+---
+
+This is the end of the second post. We started from the policy gradient, extended it to actor-critic methods, and then studied TRPO and PPO for more stable policy updates. In the next post, we will take a different approach with Q-learning, which learns an optimal action-value function and derives a policy from it instead of optimizing the policy directly.
+
+## References
+
+[^williams1992-reinforce]: Ronald J. Williams, [“Simple Statistical Gradient-Following Algorithms for Connectionist Reinforcement Learning”](https://doi.org/10.1007/BF00992696), *Machine Learning* 8(3–4):229–256, 1992.
+
+[^sutton2008-gtd]: Richard S. Sutton, Hamid R. Maei, and Csaba Szepesvári, [“A Convergent O(n) Temporal-Difference Algorithm for Off-Policy Learning with Linear Function Approximation”](https://proceedings.neurips.cc/paper/2008/hash/e0c641195b27425bb056ac56f8953d24-Abstract.html), *Advances in Neural Information Processing Systems 21*, pp. 1609–1616, 2008.
+
+[^sutton2009-gtd2]: Richard S. Sutton, Hamid Reza Maei, Doina Precup, Shalabh Bhatnagar, David Silver, Csaba Szepesvári, and Eric Wiewiora, [“Fast Gradient-Descent Methods for Temporal-Difference Learning with Linear Function Approximation”](https://doi.org/10.1145/1553374.1553501), *Proceedings of the 26th Annual International Conference on Machine Learning*, pp. 993–1000, 2009.
+
+[^thomas2014-policy-gradient]: Philip S. Thomas, [“Bias in Natural Actor-Critic Algorithms”](https://proceedings.mlr.press/v32/thomas14.html), *Proceedings of the 31st International Conference on Machine Learning*, PMLR 32(1):441–448, 2014.
+
+[^schulman2016-gae]: John Schulman, Philipp Moritz, Sergey Levine, Michael I. Jordan, and Pieter Abbeel, [“High-Dimensional Continuous Control Using Generalized Advantage Estimation”](https://arxiv.org/abs/1506.02438), *ICLR*, 2016.
+
+[^schulman2015-trpo]: John Schulman, Sergey Levine, Philipp Moritz, Michael I. Jordan, and Pieter Abbeel, [“Trust Region Policy Optimization”](https://proceedings.mlr.press/v37/schulman15.html), *Proceedings of the 32nd International Conference on Machine Learning*, PMLR 37:1889–1897, 2015.
+
+[^schulman2017-ppo]: John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov, [“Proximal Policy Optimization Algorithms”](https://arxiv.org/abs/1707.06347), arXiv:1707.06347, 2017.

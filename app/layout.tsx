@@ -57,6 +57,30 @@ const fontVariables = [
   firaCode.variable,
 ].join(" ")
 
+const themeInitScript = `
+(() => {
+  const root = document.documentElement
+  let choice = "system"
+
+  try {
+    const storedChoice = localStorage.getItem("theme-preference")
+    if (storedChoice === "light" || storedChoice === "dark") {
+      choice = storedChoice
+    }
+  } catch {}
+
+  const effectiveTheme =
+    choice === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : choice
+
+  root.dataset.theme = effectiveTheme
+  root.dataset.themeChoice = choice
+})()
+`
+
 export const metadata: Metadata = {
   title: "Kevin On",
   description: "Kevin On's personal website",
@@ -71,7 +95,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={fontVariables}>
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="antialiased">{children}</body>
     </html>
   )

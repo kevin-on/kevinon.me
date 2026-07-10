@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import localFont from "next/font/local"
 import { Fira_Code, IBM_Plex_Sans } from "next/font/google"
+import "katex/dist/katex.min.css"
 import "./globals.css"
 
 const neueMontreal = localFont({

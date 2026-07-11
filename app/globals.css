@@ -236,6 +236,10 @@ h6 {
   font-family: var(--font-display);
 }
 
+.prose :where(h2, h3) {
+  scroll-margin-top: 6rem;
+}
+
 .prose :where(code, kbd, pre) {
   font-family: var(--font-mono);
 }

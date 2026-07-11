@@ -1,53 +1,46 @@
-import fs from "fs"
-import path from "path"
 import Link from "next/link"
+import { notFound } from "next/navigation"
+import PostNavigation from "@/app/components/PostNavigation"
 import ThemeToggle from "@/app/components/ThemeToggle"
-import type { PostMetadata } from "@/lib/types"
+import { getPosts } from "@/lib/posts"
 
 type Params = {
   params: Promise<{ slug: string }>
 }
 
 export async function generateStaticParams() {
-  const contentDir = path.join(process.cwd(), "content")
-  const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"))
-  const isProduction = process.env.NODE_ENV === "production"
+  const posts = await getPosts()
 
-  const params = await Promise.all(
-    files.map(async (file) => {
-      const slug = file.replace(".mdx", "")
-      const { metadata }: { metadata: PostMetadata } = await import(
-        `@/content/${slug}.mdx`
-      )
-      return { slug, draft: metadata.draft }
-    })
-  )
-
-  return params
-    .filter((p) => !isProduction || !p.draft)
-    .map(({ slug }) => ({ slug }))
+  return posts.map(({ slug }) => ({ slug }))
 }
 
 export async function generateMetadata({ params }: Params) {
   const { slug } = await params
-  const { metadata }: { metadata: PostMetadata } = await import(
-    `@/content/${slug}.mdx`
-  )
+  const posts = await getPosts()
+  const post = posts.find((candidate) => candidate.slug === slug)
+
+  if (!post) notFound()
 
   return {
-    title: metadata.title,
-    description: metadata.description,
+    title: post.metadata.title,
+    description: post.metadata.description,
   }
 }
 
 export default async function BlogPostPage({ params }: Params) {
   const { slug } = await params
-  const {
-    default: Post,
-    metadata,
-  }: { default: React.ComponentType; metadata: PostMetadata } = await import(
+  const posts = await getPosts()
+  const currentPostIndex = posts.findIndex((post) => post.slug === slug)
+
+  if (currentPostIndex === -1) notFound()
+
+  const { default: Post }: { default: React.ComponentType } = await import(
     `@/content/${slug}.mdx`
   )
+  const metadata = posts[currentPostIndex].metadata
+  const previousPost = posts[currentPostIndex + 1]
+  const nextPost =
+    currentPostIndex > 0 ? posts[currentPostIndex - 1] : undefined
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-12">
@@ -68,6 +61,7 @@ export default async function BlogPostPage({ params }: Params) {
         <div className="prose max-w-none prose-neutral dark:prose-invert">
           <Post />
         </div>
+        <PostNavigation previousPost={previousPost} nextPost={nextPost} />
       </article>
     </main>
   )

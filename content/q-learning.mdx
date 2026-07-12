@@ -1,0 +1,4093 @@
+export const metadata = {
+  title: "Q-learning",
+  date: "2026-07-12",
+  description:
+    "From Bellman optimality and DQN to DDPG, TD3, maximum-entropy RL, and SAC.",
+}
+
+In the previous post, we looked at policy gradient methods. The basic idea there was to parameterize the policy directly as $\pi_\theta(a \mid s)$, and then update $\theta$ so that the expected return increases.
+
+Q-learning takes a different route. Instead of directly optimizing the policy, it tries to learn an ideal state-action value function, which we will call $Q^*$ for now. Intuitively, $Q^*(s,a)$ tells us how good it is to take action $a$ in state $s$, assuming we act optimally afterward.
+
+If we had this ideal Q-function, then we could get an optimal policy by choosing the action with the largest Q-value:
+
+$$
+\pi^*(s)
+\in
+\arg\max_{a \in \mathcal{A}} Q^*(s,a).
+$$
+
+In practice, Q-learning learns an approximation $Q_\phi \approx Q^*$. Given the learned $Q_\phi$, the greedy policy is
+
+$$
+\pi^{\mathrm{greedy}}(s)
+\in
+\arg\max_{a \in \mathcal{A}} Q_\phi(s,a).
+$$
+
+So the policy is derived from the learned Q-function. If $Q_\phi$ were exactly equal to $Q^*$, then the greedy policy would be optimal. In reality, $Q_\phi$ is only an approximation, so the greedy policy is only as good as the learned Q-values.
+
+## Bellman optimality
+
+### Optimal policy and value functions
+
+Now let us define the optimal Q-function more precisely.
+
+Recall that the state value function and state-action value function are defined as
+
+$$
+\begin{aligned}
+V^\pi(s)
+&=
+\mathbb{E}_{\tau \sim p_\pi(\tau \mid s_0=s)}
+\left[
+\sum_{t=0}^{T-1}\gamma^t r_t
+\right],
+\\
+Q^\pi(s,a)
+&=
+\mathbb{E}_{\tau \sim p_\pi(\tau \mid s_0=s,\ a_0=a)}
+\left[
+\sum_{t=0}^{T-1}\gamma^t r_t
+\right].
+\end{aligned}
+$$
+
+We say a policy $\pi^*$ is optimal if it is at least as good as any other policy from every starting state:
+
+$$
+V^{\pi^*}(s) \ge V^\pi(s)
+\quad
+\forall s \in \mathcal{S},\ \forall \pi .
+$$
+
+At first glance, it is not obvious that an optimal policy exists. Different states might seem to prefer different policies, so it is not clear that one policy can dominate globally. However, we will soon establish that an optimal policy always exists.
+
+If an optimal policy $\pi^*$ exists, we define the optimal value function and optimal Q-function by
+
+$$
+\begin{aligned}
+V^*(s)
+&=
+V^{\pi^*}(s),
+\\
+Q^*(s,a)
+&=
+Q^{\pi^*}(s,a).
+\end{aligned}
+$$
+
+### Bellman optimality equation for $V^*$
+
+Recall the one-step Bellman equation for a fixed policy $\pi$:
+
+$$
+V^\pi(s)
+=
+\mathbb{E}_{a \sim \pi(\cdot \mid s),\ (r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^\pi(s')
+\right].
+$$
+
+If an optimal policy $\pi^*$ exists, the same one-step relation should hold for $V^*$:
+
+$$
+V^*(s)
+=
+\mathbb{E}_{a \sim \pi^*(\cdot \mid s),\ (r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^*(s')
+\right].
+$$
+
+Now the question is: which action should $\pi^*$ choose? If we take action $a$ first and then act optimally afterward, the expected value is
+
+$$
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^*(s')
+\right].
+$$
+
+So an optimal policy would choose an action that maximizes this quantity. Therefore, we expect $V^*$ to satisfy
+
+$$
+V^*(s)
+=
+\max_{a \in \mathcal{A}}
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^*(s')
+\right].
+$$
+
+This is called the Bellman optimality equation. Just as we did for the [Bellman equation](/blog/from-mdps-to-bellman-equations#bellman-equation-and-bellman-operator), we can establish a similar theorem.
+
+Theorem. Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then the optimal value function $V^*:\mathcal{S}\to\mathbb{R}$ exists and satisfies the Bellman optimality equation:
+
+$$
+V^*(s)
+=
+\max_{a \in \mathcal{A}}
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^*(s')
+\right].
+$$
+
+Define the Bellman optimality operator $T^*$ on value functions by
+
+$$
+(T^*V)(s)
+=
+\max_{a \in \mathcal{A}}
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V(s')
+\right].
+$$
+
+Then the Bellman optimality equation can be written as
+
+$$
+T^*V^*=V^*.
+$$
+
+Conversely, if a function $V:\mathcal{S}\to\mathbb{R}$ satisfies
+
+$$
+T^*V=V,
+$$
+
+then $V=V^*$.
+
+Moreover, for any bounded initial function $V_0$,
+
+$$
+\left(T^*\right)^k V_0
+\to
+V^*
+\quad
+\text{as } k\to\infty.
+$$
+
+Finally, any greedy policy of the form
+
+$$
+\pi^*(s)
+\in
+\arg\max_{a \in \mathcal{A}}
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^*(s')
+\right]
+$$
+
+is an optimal policy.
+
+<details>
+<summary>Proof</summary>
+
+#### 1. Existence and uniqueness of the fixed point
+
+First, $T^*$ is a strict contraction with respect to $\|\cdot\|_\infty$:
+
+$$
+\begin{aligned}
+\|T^*V_1-T^*V_2\|_\infty
+&=
+\max_{s \in \mathcal{S}}
+\left|
+(T^*V_1)(s)-(T^*V_2)(s)
+\right|
+\\
+&=
+\max_{s \in \mathcal{S}}
+\left|
+\max_{a \in \mathcal{A}}
+\mathbb{E}
+\left[
+r+\gamma V_1(s')
+\mid s,a
+\right]
+-
+\max_{a \in \mathcal{A}}
+\mathbb{E}
+\left[
+r+\gamma V_2(s')
+\mid s,a
+\right]
+\right|
+\\
+&\le
+\max_{s \in \mathcal{S}}
+\max_{a \in \mathcal{A}}
+\gamma
+\mathbb{E}
+\left[
+\left|V_1(s')-V_2(s')\right|
+\mid s,a
+\right]
+\\
+&\le
+\max_{s \in \mathcal{S}}
+\max_{a \in \mathcal{A}}
+\gamma
+\max_{s' \in \mathcal{S}}
+\left|V_1(s')-V_2(s')\right|
+\\
+&=
+\gamma \|V_1-V_2\|_\infty .
+\end{aligned}
+$$
+
+So $T^*$ has a unique fixed point. Denote it by $V^*$:
+
+$$
+T^*V^*=V^*.
+$$
+
+At this point, we only know that $V^*$ is the fixed point of $T^*$. We still need to show that it is the optimal value function.
+
+#### 2. Define $\pi^*$ and show $V^*=V^{\pi^*}$
+
+Next, define $\pi^*$ to be a deterministic policy given by
+
+$$
+\pi^*(s)
+\in
+\arg\max_{a \in \mathcal{A}}
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^*(s')
+\right],
+$$
+
+where ties in the argmax are broken arbitrarily. We do not yet know that $\pi^*$ is optimal.
+
+Then, by the fixed point equation and the definition of $\pi^*$,
+
+$$
+\begin{aligned}
+V^*(s)
+&=
+\max_{a \in \mathcal{A}}
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^*(s')
+\right]
+\\
+&=
+\mathbb{E}_{a \sim \pi^*(\cdot \mid s),\ (r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^*(s')
+\right].
+\end{aligned}
+$$
+
+Unrolling this equation until the terminal state gives
+
+$$
+\begin{aligned}
+V^*(s)
+&=
+\mathbb{E}^{\pi^*}
+\left[
+r_0+\gamma V^*(s_1)
+\mid s_0=s
+\right]
+\\
+&=
+\mathbb{E}^{\pi^*}
+\left[
+r_0+\gamma r_1+\gamma^2 V^*(s_2)
+\mid s_0=s
+\right]
+\\
+&=
+\mathbb{E}^{\pi^*}
+\left[
+r_0+\gamma r_1+\cdots+\gamma^{T-1}r_{T-1}
++\gamma^T V^*(s_T)
+\mid s_0=s
+\right]
+\\
+&=
+\mathbb{E}^{\pi^*}
+\left[
+\sum_{t=0}^{T-1}\gamma^t r_t
+\mid s_0=s
+\right]
+\\
+&=
+V^{\pi^*}(s).
+\end{aligned}
+$$
+
+So the greedy policy $\pi^*$ has value $V^*$.
+
+#### 3. Show $\pi^*$ is optimal
+
+It remains to show that no other policy can do better. We use two simple facts:
+
+$$
+T^\pi V \le T^*V
+\quad
+\text{for any policy } \pi,
+$$
+
+and if $U \le V$ pointwise, then
+
+$$
+T^*U \le T^*V.
+$$
+
+The first fact holds because $T^*$ maximizes over actions. The second says that increasing the input value function cannot decrease the Bellman optimality update.
+
+For any policy $\pi$,
+
+$$
+V^\pi
+=
+T^\pi V^\pi
+\le
+T^*V^\pi .
+$$
+
+Applying the monotonicity of $T^*$ repeatedly,
+
+$$
+V^\pi
+\le
+T^*V^\pi
+\le
+(T^*)^2V^\pi
+\le
+\cdots .
+$$
+
+Since $T^*$ is a contraction, $(T^*)^kV^\pi \to V^*$. Therefore $V^\pi \le V^*$ for every policy $\pi$.
+
+$$
+V^{\pi^*}=V^*
+\quad
+\text{and}
+\quad
+V^\pi \le V^*
+\quad
+\forall \pi.
+$$
+
+Thus $\pi^*$ is an optimal policy, and $V^*$ is the optimal value function.
+
+Finally, if a function $V$ satisfies the Bellman optimality equation, then $T^*V=V$. Since $T^*$ has a unique fixed point, $V=V^*$.
+
+</details>
+
+### Bellman optimality equation for $Q^*$
+
+The same result can be written directly for the optimal state-action value function.
+
+Theorem. Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then the optimal state-action value function $Q^*:\mathcal{S}\times\mathcal{A}\to\mathbb{R}$ exists and satisfies the Bellman optimality equation:
+
+$$
+Q^*(s,a)
+=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma \max_{a' \in \mathcal{A}} Q^*(s',a')
+\right].
+$$
+
+Define the Bellman optimality operator $T^*$ on Q-functions by
+
+$$
+(T^*Q)(s,a)
+=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma \max_{a' \in \mathcal{A}} Q(s',a')
+\right].
+$$
+
+Then the Bellman optimality equation can be written as
+
+$$
+T^*Q^*=Q^*.
+$$
+
+Conversely, if a function $Q:\mathcal{S}\times\mathcal{A}\to\mathbb{R}$ satisfies
+
+$$
+T^*Q=Q,
+$$
+
+then $Q=Q^*$.
+
+Moreover, for any bounded initial function $Q_0$,
+
+$$
+\left(T^*\right)^k Q_0
+\to
+Q^*
+\quad
+\text{as } k\to\infty.
+$$
+
+Finally, any greedy policy of the form
+
+$$
+\pi^*(s)
+\in
+\arg\max_{a \in \mathcal{A}} Q^*(s,a)
+$$
+
+is an optimal policy.
+
+## Deep Q-Networks (DQN)
+
+### From Q-iteration to DQN
+
+Now we can turn the Bellman optimality equation for $Q^*$ into an algorithm.
+
+The theory above gives us Q-iteration:
+
+$$
+\begin{aligned}
+Q_{k+1}
+&=
+T^*Q_k,
+\\
+\lim_{k\to\infty}Q_k
+&=
+Q^*.
+\end{aligned}
+$$
+
+In the ideal case, suppose we can store $Q(s,a)$ for every possible state-action pair, and suppose we know the dynamics well enough to compute the expectation exactly. Then we can start from any initial $Q_0$ and iterate
+
+$$
+Q_{k+1}(s,a)
+=
+(T^*Q_k)(s,a)
+=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma \max_{a' \in \mathcal{A}} Q_k(s',a')
+\right].
+$$
+
+Then $Q_k$ converges to $Q^*$. This is the Q-function version of value iteration.
+
+In practice, both assumptions are usually false. The state space may be too large, or even continuous, so we cannot store a table of all $Q(s,a)$ values. Also, we usually do not know the transition dynamics, so we cannot compute the expectation exactly.
+
+This suggests two approximations. Instead of storing all Q-values, we represent the Q-function with a neural network $Q_\phi(s,a)$. Instead of computing the expectation exactly, we estimate the Bellman backup from sampled transitions $(s,a,r,s')$.
+
+This gives the simplest version of deep Q-learning. Following Mnih et al., we call this kind of neural-network Q-learning a deep Q-network, or DQN.[^mnih2015-dqn] Here, $\operatorname{sg}[\cdot]$ denotes the stop-gradient operator.
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: DQN version 0} \\
+\hline
+\textbf{repeat} \\
+\quad \text{Given a transition } (s,a,r,s') \\
+\quad y \leftarrow
+\begin{cases}
+r, & \text{if } s' \text{ is terminal}, \\
+r+\gamma \displaystyle\max_{a' \in \mathcal{A}} Q_\phi(s',a'), & \text{otherwise}
+\end{cases}
+\\
+\quad \phi \leftarrow \phi
+-\alpha \nabla_\phi
+\frac{1}{2}
+\left(
+Q_\phi(s,a)-\operatorname{sg}[y]
+\right)^2
+\\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+Note that we do not propagate the gradient through the target value $y$.
+
+### Why stop-gradient?
+
+Why do we stop the gradient through the target value $y$? Remember that the goal is to approximate Q-iteration:
+
+$$
+Q_{k+1} \approx T^*Q_k.
+$$
+
+With a neural network, this means the next network should be close to the Bellman update of the previous network. At iteration $k$, we write this as
+
+$$
+\phi_{k+1}
+=
+\arg\min_\phi
+\mathbb{E}
+\left[
+\left(
+Q_\phi(s,a) - (T^*Q_{\phi_k})(s,a)
+\right)^2
+\right].
+$$
+
+The point is that we want $Q_\phi$ to move closer to $T^*Q_{\phi_k}$. We do not want to move $T^*Q_{\phi_k}$ during the same update. If we also differentiate through $T^*Q_{\phi_k}$, then we are no longer just fitting the next Q-function to the Bellman update of the previous one.
+
+So in the DQN update, $(T^*Q_{\phi_k})(s,a)$ is treated as a fixed target. This is what the stop-gradient operator does in the algorithm above.
+
+### Residual learning
+
+What if we do not stop the gradient through the target? Then the loss becomes
+
+$$
+\mathcal{L}_{\mathrm{res}}(\phi)
+=
+\frac{1}{2}
+\left(
+Q_\phi(s,a)
+-
+\left(
+r+\gamma \max_{a' \in \mathcal{A}} Q_\phi(s',a')
+\right)
+\right)^2.
+$$
+
+This loss minimizes the Bellman residual of the Q-function. This is usually called Bellman residual minimization, and the corresponding gradient method is usually called the residual-gradient method, or Residual Gradient (RG).[^baird1995-residual-algorithms]
+
+Empirically, residual-gradient methods often perform worse than DQN-style semi-gradient updates in deep RL.[^yin2022-residual-gradient][^zhang2020-deep-residual-rl] One reason is gradient cancellation.
+
+Consider one transition from $(s,a)$ to $(s',a^*)$, where
+
+$$
+a^*
+\in
+\arg\max_{a' \in \mathcal{A}} Q_\phi(s',a').
+$$
+
+The Bellman residual is
+
+$$
+\delta
+=
+Q_\phi(s,a)
+-
+\left(
+r+\gamma Q_\phi(s',a^*)
+\right).
+$$
+
+In the DQN update, we reduce this error by moving only $Q_\phi(s,a)$ toward the target. In residual learning, both sides are updated. Roughly speaking,
+
+$$
+\Delta Q_\phi(s,a)
+\propto
+-\delta,
+\qquad
+\Delta Q_\phi(s',a^*)
+\propto
+\gamma\delta.
+$$
+
+So the current value and the next-state value are pushed in opposite directions. But $s$ and $s'$ come from the same transition, so their network gradients can be similar. If
+
+$$
+\nabla_\phi Q_\phi(s,a)
+\approx
+\nabla_\phi Q_\phi(s',a^*),
+$$
+
+then the residual-gradient direction contains the difference
+
+$$
+\nabla_\phi Q_\phi(s,a)
+-
+\gamma\nabla_\phi Q_\phi(s',a^*)
+\approx
+(1-\gamma)\nabla_\phi Q_\phi(s,a).
+$$
+
+When $\gamma$ is close to one, the two terms almost cancel. This makes the update small and learning slow.
+
+### Sampling states and actions
+
+Let's go back to the DQN update. So far, we have assumed that a transition $(s,a,r,s')$ is given. In practice, how do we get this transition?
+
+In some cases, we can sample state-action pairs directly. For example, a simulator may let us reset to a chosen state and try a chosen action.
+
+In general, this is not possible. For example, a real robot cannot freely jump to any state we want. In the usual RL setup, transitions come from interaction with the environment: the agent is at state $s$, chooses action $a$, observes $(r,s')$, and then continues from $s'$.
+
+Then the algorithm becomes:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: DQN with online sampling} \\
+\hline
+\textbf{repeat} \\
+\quad \text{Choose action } a \text{ and observe } (r,s') \\
+\quad y \leftarrow
+\begin{cases}
+r, & \text{if } s' \text{ is terminal}, \\
+r+\gamma \displaystyle\max_{a' \in \mathcal{A}} Q_\phi(s',a'), & \text{otherwise}
+\end{cases}
+\\
+\quad \phi \leftarrow \phi
+-\alpha \nabla_\phi
+\frac{1}{2}
+\left(
+Q_\phi(s,a)-\operatorname{sg}[y]
+\right)^2
+\\
+\quad s \leftarrow s' \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+### Replay buffer
+
+However, this version has a problem. As we update $Q_\phi$ along one trajectory, nearby updates use nearby transitions. These transitions are highly correlated, so the network may overfit to a local part of the state-action space.
+
+DQN reduces this problem with a replay buffer.[^mnih2015-dqn] A replay buffer is just a dataset of past transitions.
+
+Each time the agent acts, we add $(s,a,r,s')$ to the buffer. For training, we sample one or more minibatches from the buffer instead of using only the newest transition.
+
+This has two advantages. First, minibatch samples are less correlated than consecutive samples from one episode. Second, using a batch gives a lower-variance gradient estimate than using one transition.
+
+In practice, the buffer has fixed capacity: it stores at most $N$ transitions, and once it is full, adding a new transition removes an old one. Capacity matters because it changes the data used for training. A very small buffer stays too close to recent trajectories, while a very large buffer can keep data that no longer matches the current agent well.
+
+With a replay buffer, the algorithm becomes:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: DQN with replay buffer} \\
+\hline
+\textbf{repeat} \\
+\quad \text{Choose action } a \text{ and observe } (r,s') \\
+\quad \mathcal{D} \leftarrow \mathcal{D} \cup \{(s,a,r,s')\} \\
+\quad \textbf{for each sampled minibatch } B \subset \mathcal{D} \textbf{ do} \\
+\quad\quad y_i \leftarrow
+\begin{cases}
+r_i, & \text{if } s_i' \text{ is terminal}, \\
+r_i+\gamma \displaystyle\max_{a' \in \mathcal{A}} Q_\phi(s_i',a'), & \text{otherwise}
+\end{cases},
+\quad (s_i,a_i,r_i,s_i') \in B \\
+\quad\quad \phi \leftarrow \phi
+-\alpha \nabla_\phi
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_\phi(s_i,a_i)-\operatorname{sg}[y_i]
+\right)^2
+\\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+### Exploration
+
+How should the agent choose actions while collecting transitions?
+
+One simple idea is to always choose the greedy action:
+
+$$
+a \in \arg\max_{a \in \mathcal{A}} Q_\phi(s,a).
+$$
+
+This can be a problem early in training. The Q-function is still inaccurate, so the greedy action may only look good because of a bad estimate. If the agent keeps choosing it, the replay buffer may contain data from only a narrow part of the state-action space.
+
+The opposite extreme is to choose actions uniformly at random:
+
+$$
+a \sim \operatorname{Uniform}(\mathcal{A}).
+$$
+
+Choosing actions uniformly at random gives broad exploration, but it is usually inefficient in RL. Useful rewards often require several good actions in a row, and a uniformly random policy is unlikely to follow such a trajectory for long.
+
+A common compromise is $\epsilon$-greedy exploration:
+
+$$
+a \sim
+\begin{cases}
+\displaystyle \arg\max_{a \in \mathcal{A}} Q_\phi(s,a), & \text{with probability } 1-\epsilon, \\
+\operatorname{Uniform}(\mathcal{A}), & \text{with probability } \epsilon.
+\end{cases}
+$$
+
+The parameter $\epsilon$ controls the balance between exploration and exploitation. A larger $\epsilon$ makes the agent explore more. A smaller $\epsilon$ makes the agent follow the current Q-function more often.
+
+With $\epsilon$-greedy exploration, the replay-buffer algorithm becomes:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: DQN with exploration} \\
+\hline
+\textbf{repeat} \\
+\quad a \sim
+\begin{cases}
+\displaystyle \arg\max_{a \in \mathcal{A}} Q_\phi(s,a), & \text{w.p. } 1-\epsilon, \\
+\operatorname{Uniform}(\mathcal{A}), & \text{w.p. } \epsilon
+\end{cases}
+\\
+\quad \text{Take action } a \text{ and observe } (r,s') \\
+\quad \mathcal{D} \leftarrow \mathcal{D} \cup \{(s,a,r,s')\} \\
+\quad \textbf{for each sampled minibatch } B \subset \mathcal{D} \textbf{ do} \\
+\quad\quad y_i \leftarrow
+\begin{cases}
+r_i, & \text{if } s_i' \text{ is terminal}, \\
+r_i+\gamma \displaystyle\max_{a' \in \mathcal{A}} Q_\phi(s_i',a'), & \text{otherwise}
+\end{cases},
+\quad (s_i,a_i,r_i,s_i') \in B \\
+\quad\quad \phi \leftarrow \phi
+-\alpha \nabla_\phi
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_\phi(s_i,a_i)-\operatorname{sg}[y_i]
+\right)^2
+\\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+In practice, $\epsilon$ is often scheduled during training. Early in training, the Q-function is unreliable, so we use a large $\epsilon$. Later, as the Q-function becomes more stable, we reduce $\epsilon$. In the original DQN experiments, $\epsilon$ was annealed from $1.0$ to $0.1$ during training.[^mnih2015-dqn]
+
+The choice of exploration strategy can have a large effect on learning. If exploration is too weak, the agent may miss useful actions. If exploration is too strong, the agent may not use what it has already learned. Later DQN variants also found that changing the exploration mechanism can significantly affect performance.[^fortunato2018-noisy-networks]
+
+### On-policy vs off-policy
+
+Let us pause and think about this question:
+
+Can we use the replay buffer idea for policy-gradient methods?
+
+For the policy-gradient methods we discussed, the answer is no. The policy-gradient estimator assumes that actions are sampled from the current policy:
+
+$$
+\nabla_\theta J(\theta)
+=
+\mathbb{E}_{\tau \sim p_\theta(\tau)}
+\left[
+\left(
+\sum_{t=0}^{T-1}
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\right)
+\left(
+\sum_{t=0}^{T-1}
+\gamma^t r_t
+\right)
+\right],
+\qquad
+a_t \sim \pi_\theta(\cdot \mid s_t).
+$$
+
+This is why old transitions cannot be reused directly. If the action came from an older policy, this is no longer the right gradient estimate.
+
+DQN is different. To update the Q-function, we only need a transition $(s,a,r,s')$. The action $a$ does not have to come from the current policy.
+
+So we use the following terminology:
+
+$$
+\begin{array}{ll}
+\text{On-policy:} & \text{learn from data generated by the same policy being updated}, \\
+\text{Off-policy:} & \text{learn from data generated by a different policy}.
+\end{array}
+$$
+
+Off-policy methods can learn from data generated by a different policy. This data may come from past experience, exploratory actions, or expert demonstrations. The policy that generates the data is called the behavior policy.
+
+The main advantage of off-policy methods is sample efficiency: a single experience can be used multiple times. On-policy methods cannot reuse old data directly after the policy changes. This may be acceptable when data collection is cheap, such as in a simulated environment, but it becomes a serious limitation when data collection is expensive, such as with a real-world robot.
+
+Off-policy methods can also learn while following a safe behavior policy. This is useful in practical robotics, where the robot may need to improve its policy without directly executing risky exploratory actions.
+
+### Stabilizing DQN
+
+#### Target networks
+
+Let's go back to the DQN update. In the algorithm above, the target is
+
+$$
+y_i
+=
+\begin{cases}
+r_i, & \text{if } s_i' \text{ is terminal}, \\
+r_i+\gamma \max_{a' \in \mathcal{A}} Q_\phi(s_i',a'), & \text{otherwise}.
+\end{cases}
+$$
+
+The same network $Q_\phi$ is used to compute the target and is also being updated. So after every gradient step, $\phi$ changes, and the target $y_i$ changes too.
+
+But in fitted Q-learning, we wanted
+
+$$
+\phi_{k+1}
+=
+\arg\min_\phi
+\mathbb{E}
+\left[
+\left(
+Q_\phi(s,a) - (T^*Q_{\phi_k})(s,a)
+\right)^2
+\right].
+$$
+
+The replay-buffer algorithm above does not quite follow this. It takes only one gradient step toward the current target. Then $\phi$ changes, so the next target also changes. In other words, the target moves before we have had much time to fit it.
+
+DQN handles this with a target network. We keep two networks: an online network $Q_\phi$, which is updated by gradient descent, and a target network $Q_{\phi^-}$, which is used to compute the target. In practice, we update the target network every $C$ gradient updates.
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: DQN with target network} \\
+\hline
+\textbf{repeat} \\
+\quad a \sim
+\begin{cases}
+\displaystyle \arg\max_{a \in \mathcal{A}} Q_\phi(s,a), & \text{w.p. } 1-\epsilon, \\
+\operatorname{Uniform}(\mathcal{A}), & \text{w.p. } \epsilon
+\end{cases}
+\\
+\quad \text{Take action } a \text{ and observe } (r,s') \\
+\quad \mathcal{D} \leftarrow \mathcal{D} \cup \{(s,a,r,s')\} \\
+\quad \textbf{for each sampled minibatch } B \subset \mathcal{D} \textbf{ do} \\
+\quad\quad y_i \leftarrow
+\begin{cases}
+r_i, & \text{if } s_i' \text{ is terminal}, \\
+r_i+\gamma \displaystyle\max_{a' \in \mathcal{A}} Q_{\phi^-}(s_i',a'), & \text{otherwise}
+\end{cases},
+\quad (s_i,a_i,r_i,s_i') \in B \\
+\quad\quad \phi \leftarrow \phi
+-\alpha \nabla_\phi
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_\phi(s_i,a_i)-\operatorname{sg}[y_i]
+\right)^2
+\\
+\quad\quad \text{Every } C \text{ gradient updates, set } \phi^- \leftarrow \phi \\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+This algorithm is now close to Algorithm 1 in the original DQN paper. Two remaining differences are that the paper samples one random minibatch per environment step, and its implementation uses clipped TD errors, which is equivalent to using a Huber loss with threshold $1$. See the paper for the full implementation details.
+
+##### Polyak averaging
+
+Original DQN updates the target network by a hard copy:
+
+$$
+\phi^- \leftarrow \phi .
+$$
+
+This happens only every $C$ gradient updates. Between these updates, the target network $Q_{\phi^-}$ becomes older and older. Then it is suddenly replaced by the current online network $Q_\phi$.
+
+Polyak averaging is a smoother alternative. Instead of copying the whole network at once, we update the target network slowly:
+
+$$
+\phi^- \leftarrow \tau \phi^- + (1-\tau)\phi,
+$$
+
+where $\tau$ is close to $1$, such as $\tau=0.999$.
+
+#### Double DQN
+
+Consider an MDP where $r=0$ for every transition.
+
+$$
+Q^*(s,a)=0
+\quad
+\forall s,a.
+$$
+
+What happens if we apply DQN to this MDP?
+
+The DQN target is
+
+$$
+y
+=
+r+\gamma \max_{a'} Q_{\phi^-}(s',a').
+$$
+
+Since $r=0$,
+
+$$
+y
+=
+\gamma \max_{a'} Q_{\phi^-}(s',a').
+$$
+
+Early in training, $Q_{\phi^-}$ is noisy. Although the correct value is zero,
+
+$$
+\max_{a'} Q_{\phi^-}(s',a')
+$$
+
+will often be positive. Hence the target is positive, and the update pushes $Q_\phi(s,a)$ upward.
+
+This is not just an artifact of this example. In practice, DQN can overestimate action values; van Hasselt, Guez, and Silver observed substantial overestimation in some Atari games.[^vanhasselt2016-double-dqn]
+
+To see why the max operator creates this bias, rewrite it as
+
+$$
+\max_{a'} Q_{\phi^-}(s',a')
+=
+Q_{\phi^-}
+\left(
+s',
+\arg\max_{a'} Q_{\phi^-}(s',a')
+\right).
+$$
+
+The $\arg\max$ favors actions with positive estimation error. The outer $Q_{\phi^-}$ then reuses the same positive error as the value. This correlation between action selection and value evaluation causes overestimation.
+
+Double Q-learning avoids this reuse by separating action selection from value evaluation:[^vanhasselt2010-double-q-learning]
+
+$$
+Q_{\phi_A}(s,a)
+\leftarrow
+r+\gamma
+Q_{\phi_B}
+\left(
+s',
+\arg\max_{a'} Q_{\phi_A}(s',a')
+\right),
+$$
+
+$$
+Q_{\phi_B}(s,a)
+\leftarrow
+r+\gamma
+Q_{\phi_A}
+\left(
+s',
+\arg\max_{a'} Q_{\phi_B}(s',a')
+\right).
+$$
+
+Look again at the $r=0$ MDP. Even if $Q_{\phi_A}$ selects an action with large positive noise, the value is evaluated by $Q_{\phi_B}$. The noise in $Q_{\phi_B}$ is not tied to the noise in $Q_{\phi_A}$, so the same positive noise is not reused.
+
+In DQN, we already have two networks: the online network $Q_\phi$ and the target network $Q_{\phi^-}$. Double DQN uses them for the same separation.
+
+Standard DQN uses the target network for both selection and evaluation:
+
+$$
+y_i
+=
+r_i+\gamma
+Q_{\phi^-}
+\left(
+s_i',
+\arg\max_{a'} Q_{\phi^-}(s_i',a')
+\right).
+$$
+
+Double DQN changes only the action selection inside the target:
+
+$$
+y_i
+=
+r_i+\gamma
+Q_{\phi^-}
+\left(
+s_i',
+\arg\max_{a'} Q_\phi(s_i',a')
+\right).
+$$
+
+This gives the following Double DQN algorithm:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: Double DQN} \\
+\hline
+\textbf{repeat} \\
+\quad a \sim
+\begin{cases}
+\displaystyle \arg\max_{a \in \mathcal{A}} Q_\phi(s,a), & \text{w.p. } 1-\epsilon, \\
+\operatorname{Uniform}(\mathcal{A}), & \text{w.p. } \epsilon
+\end{cases}
+\\
+\quad \text{Take action } a \text{ and observe } (r,s') \\
+\quad \mathcal{D} \leftarrow \mathcal{D} \cup \{(s,a,r,s')\} \\
+\quad \textbf{for each sampled minibatch } B \subset \mathcal{D} \textbf{ do} \\
+\quad\quad y_i \leftarrow
+\begin{cases}
+r_i, & \text{if } s_i' \text{ is terminal}, \\
+r_i+\gamma Q_{\phi^-}
+\left(
+s_i',
+\displaystyle \arg\max_{a' \in \mathcal{A}} Q_\phi(s_i',a')
+\right), & \text{otherwise}
+\end{cases},
+\quad (s_i,a_i,r_i,s_i') \in B \\
+\quad\quad \phi \leftarrow \phi
+-\alpha \nabla_\phi
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_\phi(s_i,a_i)-\operatorname{sg}[y_i]
+\right)^2
+\\
+\quad\quad \text{Every } C \text{ gradient updates, set } \phi^- \leftarrow \phi \\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+## Q-learning with continuous actions
+
+So far, we have assumed a discrete action space. What goes wrong if the action space is continuous?
+
+The issue is that DQN repeatedly asks us to maximize the Q-function over actions.
+
+When collecting data, this appears in the greedy action:
+
+$$
+a
+\in
+\arg\max_{a \in \mathcal{A}} Q_\phi(s,a).
+$$
+
+When training the Q-function, it appears again in the target value:
+
+$$
+y_i
+=
+r_i+\gamma \max_{a' \in \mathcal{A}} Q_{\phi^-}(s_i',a').
+$$
+
+The simplest workaround is to sample candidate actions and choose the one with the largest Q-value:
+
+$$
+\begin{aligned}
+\max_a Q_\phi(s,a)
+&\approx
+\max
+\left\{
+Q_\phi(s,a_1),\ldots,Q_\phi(s,a_N)
+\right\}
+\\
+(a_1,\ldots,a_N)
+&\text{ sampled from some distribution (e.g., uniform).}
+\end{aligned}
+$$
+
+A more accurate version is to use an iterative stochastic optimizer. For example, QT-Opt uses the cross-entropy method (CEM) to approximately maximize the Q-function over continuous actions.[^kalashnikov2018-qt-opt]
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: CEM action maximization} \\
+\hline
+\text{Initialize a Gaussian distribution over actions} \\
+\textbf{repeat } K \textbf{ times} \\
+\quad \text{Sample } N \text{ candidate actions } a_1,\ldots,a_N \\
+\quad \text{Evaluate } Q_\phi(s,a_j) \text{ for all candidates} \\
+\quad \text{Keep the top } M \text{ elite actions} \\
+\quad \text{Refit the Gaussian distribution to the elite actions} \\
+\textbf{return } \text{the best action found} \\
+\hline
+\end{array}
+$$
+
+This can work when the action dimension is low enough. But as the dimension grows, sampled actions are unlikely to land near the maximizer, so the resulting target can be a poor approximation of the true max.
+
+### Normalized Advantage Functions (NAF)
+
+Another way to avoid numerical maximization is to choose a Q-function class that is easy to maximize.
+
+Normalized Advantage Functions (NAF) do this by changing the structure of the Q-network.[^gu2016-naf] Given a state $s$, the network outputs a value $V_\phi(s)$, an action mean $\mu_\phi(s)$, and a lower-triangular matrix $L_\phi(s)$. These outputs define the Q-value by
+
+$$
+Q_\phi(s,a)
+=
+V_\phi(s)
+-\frac{1}{2}
+\left(
+a-\mu_\phi(s)
+\right)^\top
+L_\phi(s)L_\phi(s)^\top
+\left(
+a-\mu_\phi(s)
+\right).
+$$
+
+The diagonal entries of $L_\phi(s)$ are constrained to be positive, so $L_\phi(s)L_\phi(s)^\top$ is positive definite. Therefore, the quadratic term is always non-positive and is maximized at $a=\mu_\phi(s)$:
+
+$$
+\arg\max_a Q_\phi(s,a)
+=
+\mu_\phi(s),
+\qquad
+\max_a Q_\phi(s,a)
+=
+V_\phi(s).
+$$
+
+So the Q-learning target no longer needs an inner optimization problem. For the next state, the target network can directly use $V_{\phi^-}(s')$ as the maximized Q-value.
+
+However, this works because NAF restricts the advantage to be quadratic in the action. The resulting Q-function is easy to maximize, but it cannot represent more complicated action-value landscapes, such as cases where several distinct actions are good for the same state.
+
+### Deep Deterministic Policy Gradient (DDPG)
+
+Another approach is to learn an approximate maximizer. The maximized Q-value can be written as
+
+$$
+\max_a Q_\phi(s,a)
+=
+Q_\phi
+\left(
+s,
+\arg\max_a Q_\phi(s,a)
+\right).
+$$
+
+DDPG introduces another network $\pi_\theta(s)$, called the actor, and trains it to approximate the action that maximizes the critic $Q_\phi$:[^lillicrap2016-ddpg]
+
+$$
+\pi_\theta(s)
+\approx
+\arg\max_a Q_\phi(s,a).
+$$
+
+For a single state, the idealized update would be
+
+$$
+\theta
+\leftarrow
+\arg\max_\theta
+Q_\phi
+\left(
+s,
+\pi_\theta(s)
+\right).
+$$
+
+In practice, we optimize this over states sampled from the replay buffer:
+
+$$
+\max_\theta
+\mathbb{E}_{s \sim \mathcal{D}}
+\left[
+Q_\phi
+\left(
+s,
+\pi_\theta(s)
+\right)
+\right].
+$$
+
+In DQN, exploration was done with $\epsilon$-greedy actions over a finite action set. For a deterministic actor in a continuous action space, a natural exploration strategy is to perturb the actor's action:
+
+$$
+a = \pi_\theta(s)+\epsilon,
+$$
+
+where $\epsilon$ is some exploration noise.
+
+DDPG also updates the target networks by Polyak averaging, instead of periodically copying the online networks.
+
+This gives the following DDPG algorithm:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: DDPG} \\
+\hline
+\textbf{repeat} \\
+\quad a \leftarrow \pi_\theta(s)+\epsilon,
+\quad \epsilon \text{ is some exploration noise} \\
+\quad \text{Take action } a \text{ and observe } (r,s') \\
+\quad \mathcal{D} \leftarrow \mathcal{D} \cup \{(s,a,r,s')\} \\
+\quad \textbf{for each sampled minibatch } B \subset \mathcal{D} \textbf{ do} \\
+\quad\quad y_i \leftarrow
+\begin{cases}
+r_i, & \text{if } s_i' \text{ is terminal}, \\
+r_i+\gamma Q_{\phi^-}
+\left(
+s_i',
+\pi_{\theta^-}(s_i')
+\right), & \text{otherwise}
+\end{cases},
+\quad (s_i,a_i,r_i,s_i') \in B \\
+\quad\quad \phi \leftarrow \phi
+-\alpha_Q \nabla_\phi
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_\phi(s_i,a_i)-\operatorname{sg}[y_i]
+\right)^2
+\\
+\quad\quad \theta \leftarrow \theta
++
+\alpha_\pi
+\nabla_\theta
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+Q_\phi
+\left(
+s_i,
+\pi_\theta(s_i)
+\right)
+\\
+\quad\quad \phi^- \leftarrow \tau \phi^- + (1-\tau)\phi \\
+\quad\quad \theta^- \leftarrow \tau \theta^- + (1-\tau)\theta \\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+#### DDPG as deterministic policy gradient method
+
+The previous section described DDPG from the DQN view:
+
+$$
+\pi_\theta(s)
+\approx
+\arg\max_a Q_\phi(s,a).
+$$
+
+However, the original DDPG paper presents the algorithm from the deterministic policy gradient (DPG) view.[^silver2014-dpg]
+
+To see what DPG means, recall the policy-gradient problem from [Policy Gradient Methods](/blog/policy-gradient-methods):
+
+$$
+\text{Find a stochastic policy } \pi_\theta(a_t\mid s_t)
+\text{ that maximizes }
+J(\theta)
+=
+\mathbb{E}_{\tau\sim p_\theta(\tau)}
+\left[
+\sum_{t=0}^{T-1}\gamma^t r_t
+\right].
+$$
+
+DPG changes the stochastic policy into a deterministic policy:
+
+$$
+a_t=\pi_\theta(s_t).
+$$
+
+The objective is still
+
+$$
+J(\theta)
+=
+\mathbb{E}_{s_0\sim p_0}
+\left[
+V^\theta(s_0)
+\right].
+$$
+
+Theorem. The deterministic policy gradient is
+
+$$
+\nabla_\theta J(\theta)
+=
+\mathbb{E}_{s_0\sim p_0,\pi_\theta}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\nabla_\theta \pi_\theta(s_t)
+\left.
+\nabla_a Q^\theta(s_t,a)
+\right|_{a=\pi_\theta(s_t)}
+\right].
+$$
+
+Equivalently, using the discounted state distribution,
+
+$$
+\begin{aligned}
+\nabla_\theta J(\theta)
+&=
+\mathbb{E}_{s\sim \rho^\theta}
+\left[
+\nabla_\theta \pi_\theta(s)
+\left.
+\nabla_a Q^\theta(s,a)
+\right|_{a=\pi_\theta(s)}
+\right],
+\\
+\rho^\theta(s)
+&=
+\mathbb{E}_{s_0\sim p_0,\pi_\theta}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\mathbf{1}\{s_t=s\}
+\right].
+\end{aligned}
+$$
+
+<details>
+<summary>Proof</summary>
+
+First,
+
+$$
+V^\theta(s)=Q^\theta(s,\pi_\theta(s)).
+$$
+
+Also,
+
+$$
+Q^\theta(s,a)
+=
+\mathbb{E}_{r,s'\sim p(\cdot,\cdot|s,a)}
+\left[
+r+\gamma V^\theta(s')
+\right].
+$$
+
+Differentiate $V^\theta(s)$:
+
+$$
+\begin{aligned}
+\nabla_\theta V^\theta(s)
+&=
+\nabla_\theta Q^\theta(s,\pi_\theta(s))
+\\
+&=
+\left.
+\nabla_\varphi Q^\theta(s,\pi_\varphi(s))
+\right|_{\varphi=\theta}
++
+\left.
+\nabla_\eta Q^\eta(s,\pi_\theta(s))
+\right|_{\eta=\theta}.
+\end{aligned}
+$$
+
+The first term changes only the current action:
+
+$$
+\left.
+\nabla_\varphi Q^\theta(s,\pi_\varphi(s))
+\right|_{\varphi=\theta}
+=
+\left.
+\nabla_\varphi \pi_\varphi(s)
+\nabla_a Q^\theta(s,a)
+\right|_{\substack{\varphi=\theta\\a=\pi_\theta(s)}}.
+$$
+
+So
+
+$$
+\left.
+\nabla_\varphi Q^\theta(s,\pi_\varphi(s))
+\right|_{\varphi=\theta}
+=
+\nabla_\theta \pi_\theta(s)
+\left.
+\nabla_a Q^\theta(s,a)
+\right|_{a=\pi_\theta(s)}.
+$$
+
+The second term changes the future policy inside $Q^\theta$:
+
+$$
+\begin{aligned}
+\left.
+\nabla_\eta Q^\eta(s,\pi_\theta(s))
+\right|_{\eta=\theta}
+&=
+\left.
+\nabla_\eta
+\mathbb{E}_{r,s'\sim p(\cdot,\cdot|s,\pi_\theta(s))}
+\left[
+r+\gamma V^\eta(s')
+\right]
+\right|_{\eta=\theta}
+\\
+&=
+\gamma
+\mathbb{E}_{r,s'\sim p(\cdot,\cdot|s,\pi_\theta(s))}
+\left[
+\nabla_\theta V^\theta(s')
+\right].
+\end{aligned}
+$$
+
+Therefore,
+
+$$
+\boxed{
+\nabla_\theta V^\theta(s)
+=
+\nabla_\theta \pi_\theta(s)
+\left.
+\nabla_a Q^\theta(s,a)
+\right|_{a=\pi_\theta(s)}
++
+\gamma
+\mathbb{E}_{s'\sim p(\cdot|s,\pi_\theta(s))}
+\left[
+\nabla_\theta V^\theta(s')
+\right]
+}
+$$
+
+Starting from $s_0$,
+
+$$
+\begin{aligned}
+\nabla_\theta V^\theta(s_0)
+=&
+\nabla_\theta \pi_\theta(s_0)
+\left.
+\nabla_a Q^\theta(s_0,a)
+\right|_{a=\pi_\theta(s_0)}
+\\
+&+
+\gamma
+\mathbb{E}
+\left[
+\nabla_\theta V^\theta(s_1)
+\mid s_0
+\right].
+\end{aligned}
+$$
+
+Apply the same identity to $s_1$:
+
+$$
+\begin{aligned}
+\nabla_\theta V^\theta(s_1)
+=&
+\nabla_\theta \pi_\theta(s_1)
+\left.
+\nabla_a Q^\theta(s_1,a)
+\right|_{a=\pi_\theta(s_1)}
+\\
+&+
+\gamma
+\mathbb{E}
+\left[
+\nabla_\theta V^\theta(s_2)
+\mid s_1
+\right].
+\end{aligned}
+$$
+
+Substituting this into the previous equation gives
+
+$$
+\begin{aligned}
+\nabla_\theta V^\theta(s_0)
+=&
+\nabla_\theta \pi_\theta(s_0)
+\left.
+\nabla_a Q^\theta(s_0,a)
+\right|_{a=\pi_\theta(s_0)}
+\\
+&+
+\gamma
+\mathbb{E}
+\left[
+\nabla_\theta \pi_\theta(s_1)
+\left.
+\nabla_a Q^\theta(s_1,a)
+\right|_{a=\pi_\theta(s_1)}
+\mid s_0
+\right]
+\\
+&+
+\gamma^2
+\mathbb{E}
+\left[
+\nabla_\theta V^\theta(s_2)
+\mid s_0
+\right].
+\end{aligned}
+$$
+
+Repeating once more,
+
+$$
+\begin{aligned}
+\nabla_\theta V^\theta(s_0)
+=&
+\nabla_\theta \pi_\theta(s_0)
+\left.
+\nabla_a Q^\theta(s_0,a)
+\right|_{a=\pi_\theta(s_0)}
+\\
+&+
+\gamma
+\mathbb{E}
+\left[
+\nabla_\theta \pi_\theta(s_1)
+\left.
+\nabla_a Q^\theta(s_1,a)
+\right|_{a=\pi_\theta(s_1)}
+\mid s_0
+\right]
+\\
+&+
+\gamma^2
+\mathbb{E}
+\left[
+\nabla_\theta \pi_\theta(s_2)
+\left.
+\nabla_a Q^\theta(s_2,a)
+\right|_{a=\pi_\theta(s_2)}
+\mid s_0
+\right]
+\\
+&+
+\gamma^3
+\mathbb{E}
+\left[
+\nabla_\theta V^\theta(s_3)
+\mid s_0
+\right].
+\end{aligned}
+$$
+
+After $T$ steps,
+
+$$
+\begin{aligned}
+\nabla_\theta V^\theta(s_0)
+&=
+\mathbb{E}
+\Bigg[
+\sum_{t=0}^{T-1}
+\gamma^t
+\nabla_\theta \pi_\theta(s_t)
+\left.
+\nabla_a Q^\theta(s_t,a)
+\right|_{a=\pi_\theta(s_t)}
++
+\gamma^T \nabla_\theta V^\theta(s_T)
+\;\Bigg|\;s_0
+\Bigg]
+\\
+&=
+\mathbb{E}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\nabla_\theta \pi_\theta(s_t)
+\left.
+\nabla_a Q^\theta(s_t,a)
+\right|_{a=\pi_\theta(s_t)}
+\ \middle|\ s_0
+\right].
+\end{aligned}
+$$
+
+Finally,
+
+$$
+J(\theta)
+=
+\mathbb{E}_{s_0\sim p_0}
+\left[
+V^\theta(s_0)
+\right],
+$$
+
+so
+
+$$
+\boxed{
+\nabla_\theta J(\theta)
+=
+\mathbb{E}_{s_0\sim p_0,\pi_\theta}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\nabla_\theta \pi_\theta(s_t)
+\left.
+\nabla_a Q^\theta(s_t,a)
+\right|_{a=\pi_\theta(s_t)}
+\right]
+}
+$$
+
+Using the discounted state distribution,
+
+$$
+\boxed{
+\nabla_\theta J(\theta)
+=
+\mathbb{E}_{s\sim \rho^\theta}
+\left[
+\nabla_\theta \pi_\theta(s)
+\left.
+\nabla_a Q^\theta(s,a)
+\right|_{a=\pi_\theta(s)}
+\right].
+}
+$$
+
+This proves the theorem.
+
+</details>
+
+DDPG uses two approximations:
+
+$$
+Q^\theta(s,a)\approx Q_\phi(s,a),
+\qquad
+\rho^\theta\approx \mathcal{D}.
+$$
+
+Therefore,
+
+$$
+\nabla_\theta J(\theta)
+\approx
+\mathbb{E}_{s\sim \mathcal{D}}
+\left[
+\nabla_\theta \pi_\theta(s)
+\left.
+\nabla_a Q_\phi(s,a)
+\right|_{a=\pi_\theta(s)}
+\right].
+$$
+
+Equivalently, the actor performs gradient ascent on
+
+$$
+\mathbb{E}_{s\sim \mathcal{D}}
+\left[
+Q_\phi(s,\pi_\theta(s))
+\right].
+$$
+
+In minibatch form,
+
+$$
+\theta \leftarrow \theta
++
+\alpha_\pi
+\nabla_\theta
+\frac{1}{|B|}
+\sum_{i \in B}
+Q_\phi(s_i,\pi_\theta(s_i)).
+$$
+
+This is the actor update used in the DDPG algorithm above.
+
+### Twin Delayed Deep Deterministic Policy Gradient (TD3)
+
+#### Clipped double Q-learning
+
+DDPG uses the target
+
+$$
+y =
+r + \gamma Q_{\phi^-}
+\left(
+s',
+\mu_{\theta^-}(s')
+\right).
+$$
+
+This has the same kind of overestimation problem we saw in DQN. TD3 applies the basic idea of Double Q-learning to reduce this overestimation.[^fujimoto2018-td3]
+
+Unlike Double DQN, which reused the online and target networks as the two value estimates, TD3 follows the original Double Q-learning idea and learns two critics:
+
+$$
+Q_{\phi_1}(s,a),
+\qquad
+Q_{\phi_2}(s,a).
+$$
+
+A direct actor-critic version of Double Q-learning can be written as
+
+$$
+\begin{aligned}
+y_1
+&=
+r
++
+\gamma
+Q_{\phi_2^-}
+\left(
+s',
+\mu_{\theta_1}(s')
+\right),
+&
+Q_{\phi_1}
+&\leftarrow
+y_1,
+\\
+y_2
+&=
+r
++
+\gamma
+Q_{\phi_1^-}
+\left(
+s',
+\mu_{\theta_2}(s')
+\right),
+&
+Q_{\phi_2}
+&\leftarrow
+y_2.
+\end{aligned}
+$$
+
+TD3 makes this idea more conservative. Instead of letting each critic use the other critic's value, TD3 uses the smaller of the two target critic values:
+
+$$
+y
+=
+r
++
+\gamma
+\min_{j=1,2}
+Q_{\phi_j^-}
+\left(
+s',
+\mu_{\theta^-}(s')
+\right).
+$$
+
+This is called **clipped double Q-learning**. Taking the minimum can make the target underestimate the true value, but this is usually safer than overestimation. Since the actor update maximizes $Q_\phi(s,\mu_\theta(s))$, overestimated actions are more likely to be selected. They can then appear again in future rollouts and TD targets, so the error can reinforce itself. Underestimated actions are less likely to be selected, so their errors are less likely to propagate.
+
+#### Target policy smoothing
+
+TD3 also adds a small amount of clipped noise to the target action. This target policy smoothing prevents the critic target from overfitting to narrow peaks in the value estimate, and encourages nearby actions to have similar values:
+
+$$
+\tilde a'
+=
+\mu_{\theta^-}(s')+\epsilon,
+\qquad
+\epsilon
+\sim
+\operatorname{clip}
+\left(
+\mathcal{N}(0,\sigma),
+-c,
+c
+\right).
+$$
+
+So the actual target is
+
+$$
+y
+=
+r
++
+\gamma
+\min_{j=1,2}
+Q_{\phi_j^-}
+\left(
+s',
+\tilde a'
+\right).
+$$
+
+#### Delayed policy updates
+
+TD3 updates the critic more frequently while updating the actor more cautiously. The critics are updated every gradient step, while the actor and target networks are updated only after every $d$ critic updates. A common choice is $d=2$.
+
+#### TD3 algorithm
+
+Combining clipped double Q-learning, target policy smoothing, and delayed policy updates gives the complete TD3 algorithm:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: TD3} \\
+\hline
+\text{Initialize } Q_{\phi_1}, Q_{\phi_2}, \mu_\theta
+\text{ and target networks } Q_{\phi_1^-}, Q_{\phi_2^-}, \mu_{\theta^-} \\
+\text{Initialize replay buffer } \mathcal{D} \\
+\textbf{repeat} \\
+\quad a \leftarrow \mu_\theta(s)+\eta,
+\quad \eta \text{ is some exploration noise} \\
+\quad \text{Take action } a \text{ and observe } (r,s') \\
+\quad \mathcal{D} \leftarrow \mathcal{D} \cup \{(s,a,r,s')\} \\
+\quad \textbf{for each sampled minibatch } B \subset \mathcal{D} \textbf{ do} \\
+\quad\quad \epsilon_i'
+\sim
+\operatorname{clip}
+\left(
+\mathcal{N}(0,\sigma),
+-c,
+c
+\right)
+\\
+\quad\quad \tilde a_i' \leftarrow
+\mu_{\theta^-}(s_i')+\epsilon_i'
+\\
+\quad\quad y_i \leftarrow
+\begin{cases}
+r_i, & \text{if } s_i' \text{ is terminal}, \\
+r_i+\gamma
+\displaystyle
+\min_{j=1,2}
+Q_{\phi_j^-}
+\left(
+s_i',
+\tilde a_i'
+\right), & \text{otherwise}
+\end{cases},
+\quad (s_i,a_i,r_i,s_i') \in B \\
+\quad\quad \textbf{for } j \in \{1,2\} \textbf{ do} \\
+\quad\quad\quad \phi_j \leftarrow \phi_j
+-\alpha_Q \nabla_{\phi_j}
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_{\phi_j}(s_i,a_i)-\operatorname{sg}[y_i]
+\right)^2
+\\
+\quad\quad \textbf{end for} \\
+\quad\quad \textbf{after every } d \textbf{ critic updates do} \\
+\quad\quad\quad \theta \leftarrow \theta
++
+\alpha_\mu
+\nabla_\theta
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+Q_{\phi_1}
+\left(
+s_i,
+\mu_\theta(s_i)
+\right)
+\\
+\quad\quad\quad \phi_1^- \leftarrow \tau \phi_1^- + (1-\tau)\phi_1 \\
+\quad\quad\quad \phi_2^- \leftarrow \tau \phi_2^- + (1-\tau)\phi_2 \\
+\quad\quad\quad \theta^- \leftarrow \tau \theta^- + (1-\tau)\theta \\
+\quad\quad \textbf{end after} \\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+## Maximum Entropy RL
+
+So far, the goal has been to find a policy that maximizes expected return. Maximum-entropy RL changes the objective slightly. Instead of maximizing only reward, it maximizes reward and policy entropy:
+
+$$
+J_{\mathcal{H}}(\pi)
+=
+\mathbb{E}^{\pi}_{s_0 \sim p_0}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\left(
+r_t
++
+\beta
+\mathcal{H}
+\left(
+\pi(\cdot \mid s_t)
+\right)
+\right)
+\right]
+$$
+
+where $\mathcal{H}$ denotes the entropy of the policy at state $s$:
+
+$$
+\mathcal{H}
+\left(
+\pi(\cdot \mid s)
+\right)
+=
+\mathbb{E}_{a \sim \pi(\cdot \mid s)}
+\left[
+-\log \pi(a \mid s)
+\right].
+$$
+
+Here $\beta > 0$ is the temperature. When $\beta$ is small, the entropy term matters less and the objective becomes close to the usual RL objective. When $\beta$ is large, the policy is pushed to stay more random.
+
+Why optimize this objective instead of the usual return? The ordinary objective gives a greedy policy:
+
+$$
+\pi^*(s)
+\in
+\arg\max_{a \in \mathcal{A}} Q^*(s,a).
+$$
+
+So the policy tries to learn one best action for each state. This is sometimes exactly what we want. But in many tasks, a single state can have several good actions. For example, when picking up a cup, we might grab the handle, support the cup from the bottom, or hold it near the rim depending on the situation.
+
+The maximum-entropy objective captures this idea. It still prefers actions with high return, but among actions with similar return, it prefers a policy that keeps multiple options available. So if there are many ways to solve the task, the policy is encouraged to represent many of them instead of collapsing immediately to one arbitrary choice.
+
+Here is an example that demonstrates the difference between the ordinary objective and the maximum-entropy objective.
+
+<iframe
+  width="560"
+  height="315"
+  src="https://www.youtube.com/embed/7Nm1N6sUoVs?start=5&amp;end=14"
+  title="Standard RL objective versus maximum-entropy RL objective"
+  frameBorder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  referrerPolicy="strict-origin-when-cross-origin"
+  loading="lazy"
+  allowFullScreen>
+</iframe>
+
+This video compares the standard RL objective with the maximum-entropy RL objective. DDPG represents the standard objective, while Soft Q-learning (SQL) represents the maximum-entropy objective. In this experiment, a quadruped is rewarded for moving quickly without specifying a particular direction.[^haarnoja2017-soft-q-learning] DDPG tends to pick one consistent direction, whereas SQL can keep several directions as plausible behavior because its objective rewards high-return behavior without forcing the policy to collapse to one mode.
+
+### Discrete entropy and differential entropy
+
+The entropy you might be more familiar with is the entropy of a discrete random variable. If $X$ takes values in a finite set $\mathcal{X}$, then
+
+$$
+\mathcal{H}(X)
+=
+-
+\sum_{x \in \mathcal{X}}
+p(x)\log p(x)
+=
+\mathbb{E}_{x \sim p}
+\left[
+-\log p(x)
+\right].
+$$
+
+For a finite discrete random variable,
+
+$$
+0
+\le
+\mathcal{H}(X)
+\le
+\log |\mathcal{X}|.
+$$
+
+The minimum value $0$ is achieved if and only if $X$ is deterministic. The maximum value $\log |\mathcal{X}|$ is achieved by the uniform distribution.
+
+For a continuous random variable, the analogous object is called differential entropy. If $X$ has density $p(x)$, then
+
+$$
+h(X)
+=
+-
+\int
+p(x)\log p(x)dx
+=
+\mathbb{E}_{x \sim p}
+\left[
+-\log p(x)
+\right].
+$$
+
+This looks almost identical, but it behaves differently. Differential entropy has no universal lower or upper bound. It can be negative, and it can be made arbitrarily large by spreading the density over a wider region. So we should not treat discrete entropy and differential entropy as exactly the same object.
+
+### Soft value functions
+
+From the augmented objective, we can define soft value functions. For a fixed policy $\pi$,
+
+$$
+\begin{aligned}
+V^\pi_{\mathcal{H}}(s)
+&=
+\mathbb{E}^{\pi}
+\left[
+\sum_{t=0}^{T-1}
+\gamma^t
+\left(
+r_t
++
+\beta
+\mathcal{H}
+\left(
+\pi(\cdot \mid s_t)
+\right)
+\right)
+\mid s_0=s
+\right],
+\\
+Q^\pi_{\mathcal{H}}(s,a)
+&=
+\mathbb{E}^{\pi}
+\left[
+r_0
++
+\sum_{t=1}^{T-1}
+\gamma^t
+\left(
+r_t
++
+\beta
+\mathcal{H}
+\left(
+\pi(\cdot \mid s_t)
+\right)
+\right)
+\mid s_0=s,\ a_0=a
+\right].
+\end{aligned}
+$$
+
+Note that $Q^\pi_{\mathcal{H}}(s,a)$ does not include the entropy term for the current state $s$, because the current action is already determined.
+
+As before, the two value functions are related:
+
+$$
+\begin{aligned}
+Q^\pi_{\mathcal{H}}(s,a)
+&=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^\pi_{\mathcal{H}}(s')
+\right],
+\\[0.5em]
+V^\pi_{\mathcal{H}}(s)
+&=
+\mathbb{E}_{a \sim \pi(\cdot \mid s)}
+\left[
+Q^\pi_{\mathcal{H}}(s,a)
+-
+\beta \log \pi(a \mid s)
+\right].
+\end{aligned}
+$$
+
+<details>
+<summary>Derivation</summary>
+
+For the first relation, separate the first transition in the definition of $Q^\pi_{\mathcal{H}}$:
+
+$$
+\begin{aligned}
+Q^\pi_{\mathcal{H}}(s,a)
+&=
+\mathbb{E}^\pi
+\left[
+r_0
++
+\sum_{t=1}^{T-1}
+\gamma^t
+\left(
+r_t
++
+\beta
+\mathcal{H}
+\left(
+\pi(\cdot \mid s_t)
+\right)
+\right)
+\mid s_0=s,\ a_0=a
+\right]
+\\
+&=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r+\gamma V^\pi_{\mathcal{H}}(s')
+\right].
+\end{aligned}
+$$
+
+For the second relation, start from the definition of $V^\pi_{\mathcal{H}}$ and separate the first action:
+
+$$
+\begin{aligned}
+V^\pi_{\mathcal{H}}(s)
+&=
+\mathbb{E}_{a \sim \pi(\cdot \mid s)}
+\left[
+\mathbb{E}
+\left[
+r_0
++
+\sum_{t=1}^{T-1}
+\gamma^t
+\left(
+r_t
++
+\beta
+\mathcal{H}
+\left(
+\pi(\cdot \mid s_t)
+\right)
+\right)
+\mid s_0=s,\ a_0=a
+\right]
+\right]
++
+\beta
+\mathcal{H}
+\left(
+\pi(\cdot \mid s)
+\right)
+\\
+&=
+\mathbb{E}_{a \sim \pi(\cdot \mid s)}
+\left[
+Q^\pi_{\mathcal{H}}(s,a)
+\right]
++
+\beta
+\mathbb{E}_{a \sim \pi(\cdot \mid s)}
+\left[
+-\log \pi(a \mid s)
+\right]
+\\
+&=
+\mathbb{E}_{a \sim \pi(\cdot \mid s)}
+\left[
+Q^\pi_{\mathcal{H}}(s,a)
+-
+\beta \log \pi(a \mid s)
+\right].
+\end{aligned}
+$$
+
+The first term is the expected return after fixing the first action. The entropy term for the current state can then be written as an expectation over the sampled first action.
+
+</details>
+
+#### Handling terminal states
+
+Under the original MDP definition, a trajectory ends when it reaches $s_T=s_{\mathrm{term}}$. Since the agent does not choose another action at the terminal state, $\pi(\cdot\mid s_{\mathrm{term}})$, and therefore its entropy, is not defined.
+
+To avoid writing a separate terminal case in every equation, we introduce a single dummy action $a_{\mathrm{term}}$ at the terminal state. This action keeps the process at $s_{\mathrm{term}}$ and produces zero reward:
+
+$$
+p(r=0,s'=s_{\mathrm{term}}
+\mid s_{\mathrm{term}},a_{\mathrm{term}})
+=
+1.
+$$
+
+Since it is the only available action,
+
+$$
+\pi(a_{\mathrm{term}}\mid s_{\mathrm{term}})=1,
+\qquad
+\mathcal{H}\left(\pi(\cdot\mid s_{\mathrm{term}})\right)=0.
+$$
+
+There is no reward or entropy bonus after reaching the terminal state. Therefore,
+
+$$
+V^\pi_{\mathcal H}(s_{\mathrm{term}})=0,
+\qquad
+Q^\pi_{\mathcal H}(s_{\mathrm{term}},a_{\mathrm{term}})=0.
+$$
+
+To keep the notation simple, we will omit separate terminal-state cases in the equations below. If a fully explicit terminal-state equation is needed, it can be recovered using the dummy-action convention above.
+
+### Soft Bellman equation
+
+We can derive a similar Bellman equation for the soft Q-function.
+
+Theorem. Let $\pi$ be a fixed policy. Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then $Q^\pi_{\mathcal{H}}$ exists and satisfies the soft Bellman equation
+
+$$
+Q^\pi_{\mathcal{H}}(s,a)
+=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a),\ a' \sim \pi(\cdot \mid s')}
+\left[
+r
++
+\gamma
+\left(
+Q^\pi_{\mathcal{H}}(s',a')
+-
+\beta \log \pi(a' \mid s')
+\right)
+\right].
+$$
+
+Define the soft Bellman operator $T^\pi_{\mathcal{H}}$ by
+
+$$
+\left(
+T^\pi_{\mathcal{H}}Q
+\right)(s,a)
+=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a),\ a' \sim \pi(\cdot \mid s')}
+\left[
+r
++
+\gamma
+\left(
+Q(s',a')
+-
+\beta \log \pi(a' \mid s')
+\right)
+\right].
+$$
+
+The soft Bellman equation can be written as
+
+$$
+T^\pi_{\mathcal{H}}Q^\pi_{\mathcal{H}}
+=
+Q^\pi_{\mathcal{H}}.
+$$
+
+Conversely, if a bounded function $Q:\mathcal{S}\times\mathcal{A}\to\mathbb{R}$ satisfies
+
+$$
+T^\pi_{\mathcal{H}}Q
+=
+Q,
+$$
+
+then $Q=Q^\pi_{\mathcal{H}}$.
+
+Moreover, for any bounded initial function $Q_0$,
+
+$$
+\left(T^\pi_{\mathcal{H}}\right)^k Q_0
+\to
+Q^\pi_{\mathcal{H}}
+\quad
+\text{as } k\to\infty .
+$$
+
+<details>
+<summary>Proof sketch</summary>
+
+Since rewards are bounded and $\mathcal{A}$ is finite, the entropy term is bounded:
+
+$$
+0
+\le
+\mathcal{H}
+\left(
+\pi(\cdot \mid s)
+\right)
+\le
+\log |\mathcal{A}|.
+$$
+
+So the discounted soft return is bounded, and $Q^\pi_{\mathcal{H}}$ is well defined.
+
+The one-step decomposition gives
+
+$$
+T^\pi_{\mathcal{H}}Q^\pi_{\mathcal{H}}
+=
+Q^\pi_{\mathcal{H}}.
+$$
+
+Thus $Q^\pi_{\mathcal{H}}$ is a fixed point of $T^\pi_{\mathcal{H}}$.
+
+The operator is a $\gamma$-contraction. For any bounded $Q_1,Q_2$,
+
+$$
+\begin{aligned}
+\left\|
+T^\pi_{\mathcal{H}}Q_1
+-
+T^\pi_{\mathcal{H}}Q_2
+\right\|_\infty
+&\le
+\gamma
+\max_{s,a}
+\mathbb{E}_{s',a'}
+\left[
+\left|
+Q_1(s',a')-Q_2(s',a')
+\right|
+\mid s,a
+\right]
+\\
+&\le
+\gamma
+\left\|
+Q_1-Q_2
+\right\|_\infty.
+\end{aligned}
+$$
+
+The reward and entropy terms cancel in the difference, so this is exactly the same contraction argument as before.
+
+By the contraction mapping theorem, $T^\pi_{\mathcal{H}}$ has a unique fixed point, and repeated application of the operator converges to it. Since $Q^\pi_{\mathcal{H}}$ is already a fixed point, it must be that unique fixed point.
+
+</details>
+
+### Softmax policy
+
+Now suppose the soft Q-function is given. What should the policy look like?
+
+Before, we simply chose an action that maximized the Q-value:
+
+$$
+\pi^{\mathrm{greedy}}(s)
+\in
+\arg\max_{a \in \mathcal{A}} Q(s,a).
+$$
+
+In maximum-entropy RL, the policy at state $s$ should maximize the Q-value and the entropy of the policy:
+
+$$
+\mathbb{E}_{a \sim \pi(\cdot \mid s)}
+\left[
+Q_{\mathcal{H}}(s,a)
+\right]
++
+\beta
+\mathcal{H}
+\left(
+\pi(\cdot \mid s)
+\right).
+$$
+
+The greedy argmax is no longer the right solution, because it maximizes only the Q-value and ignores the entropy bonus. We need a policy that balances high Q-values with high entropy.
+
+For a Q-function $Q$, define its softmax policy by
+
+$$
+\begin{aligned}
+\pi^{\frac{1}{\beta}Q}(a \mid s)
+&=
+\frac{
+\exp
+\left(
+\frac{1}{\beta}Q(s,a)
+\right)
+}{
+\sum_{\tilde a \in \mathcal{A}}
+\exp
+\left(
+\frac{1}{\beta}Q(s,\tilde a)
+\right)
+},
+\quad
+\text{if } |\mathcal{A}|<\infty,
+\\[0.5em]
+\pi^{\frac{1}{\beta}Q}(a \mid s)
+&=
+\frac{
+\exp
+\left(
+\frac{1}{\beta}Q(s,a)
+\right)
+}{
+\int_{\mathcal{A}}
+\exp
+\left(
+\frac{1}{\beta}Q(s,\tilde a)
+\right)
+d\tilde a
+},
+\quad
+\text{if } \mathcal{A} \text{ is continuous}.
+\end{aligned}
+$$
+
+<details>
+<summary>Derivation</summary>
+
+For simplicity, assume $\mathcal{A}$ is finite. For a fixed state $s$, write $\pi_a=\pi(a \mid s)$ and $Q_a=Q(s,a)$. The optimization problem is
+
+$$
+\pi^{\frac{1}{\beta}Q}(\cdot \mid s)
+=
+\arg\max_{\pi(\cdot \mid s)}
+\sum_a \pi_a Q_a
+-
+\beta
+\sum_a \pi_a \log \pi_a
+$$
+
+subject to
+
+$$
+\sum_a \pi_a=1,
+\qquad
+\pi_a \ge 0.
+$$
+
+The Lagrangian is
+
+$$
+\mathcal{L}(\pi,\lambda)
+=
+\sum_a \pi_a Q_a
+-
+\beta
+\sum_a \pi_a \log \pi_a
++
+\lambda
+\left(
+\sum_a \pi_a-1
+\right).
+$$
+
+Taking the derivative with respect to $\pi_a$ gives
+
+$$
+\frac{\partial \mathcal{L}}{\partial \pi_a}
+=
+Q_a
+-
+\beta
+\left(
+\log \pi_a+1
+\right)
++
+\lambda.
+$$
+
+At the optimum,
+
+$$
+Q_a
+-
+\beta
+\left(
+\log \pi_a+1
+\right)
++
+\lambda
+=
+0.
+$$
+
+Therefore,
+
+$$
+\log \pi_a
+=
+\frac{Q_a}{\beta}
++
+\frac{\lambda-\beta}{\beta},
+$$
+
+so
+
+$$
+\pi_a
+\propto
+\exp(Q_a/\beta).
+$$
+
+Normalizing over actions gives $\pi^{\frac{1}{\beta}Q}(\cdot \mid s)$.
+
+</details>
+
+The softmax policy is proportional to $\exp(\frac{1}{\beta}Q(s,a))$. So every action can still be chosen, but actions with larger Q-values are chosen more often. Also, as $\beta \to 0$, the largest Q-value dominates the exponential, and the policy becomes the greedy argmax policy.
+
+### Softmax and log-sum-exp
+
+The policy above is called a softmax policy because it uses the softmax function. Since this name is used in a slightly confusing way, let us pause and make the notation clear.
+
+For $\beta>0$, define the softmax function with temperature $\beta$, $\operatorname{softmax}_\beta:\mathbb{R}^n\to\mathbb{R}^n$, as
+
+$$
+\operatorname{softmax}_\beta(x)
+=
+\frac{
+1
+}{
+\sum_{i=1}^{n}
+\exp
+\left(
+\frac{1}{\beta}x_i
+\right)
+}
+\begin{bmatrix}
+\exp
+\left(
+\frac{1}{\beta}x_1
+\right)
+\\
+\vdots \\
+\exp
+\left(
+\frac{1}{\beta}x_n
+\right)
+\end{bmatrix}
+$$
+
+The $\beta=1$ version is the function commonly called "softmax" in deep learning.
+
+The softmax function can be viewed as a smoothed version of the one-hot argmax:
+
+$$
+\lim_{\beta \to 0}
+\operatorname{softmax}_\beta(x)
+=
+e_{\arg\max_i x_i}
+\quad
+\text{(if maximizer is unique)},
+$$
+
+where $e_i$ is the one-hot vector whose $i$-th entry is one.
+
+For this reason, this function is sometimes called "softargmax," although in deep learning the standard name is "softmax."
+
+Then what is a smoothed version of the maximum itself? This is the log-sum-exp function $\operatorname{LSE}_\beta:\mathbb{R}^n\to\mathbb{R}$:
+
+$$
+\operatorname{LSE}_\beta(x)
+=
+\beta
+\log
+\sum_{i=1}^{n}
+\exp(x_i/\beta).
+$$
+
+$$
+\lim_{\beta \to 0}
+\operatorname{LSE}_\beta(x)
+=
+\max_i x_i.
+$$
+
+Finally, the two functions are connected by a simple gradient relation:
+
+$$
+\operatorname{softmax}_\beta(x)
+=
+\nabla
+\operatorname{LSE}_\beta(x).
+$$
+
+### Soft Bellman optimality equation
+
+Now we can write the maximum-entropy version of the Bellman optimality equation.
+
+Theorem. Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then the optimal soft Q-function $Q^*_{\mathcal{H}}:\mathcal{S}\times\mathcal{A}\to\mathbb{R}$ exists and satisfies the soft Bellman optimality equation
+
+$$
+Q^*_{\mathcal{H}}(s,a)
+=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r
++
+\gamma
+\operatorname{LSE}_\beta
+\left(
+Q^*_{\mathcal{H}}(s',\cdot)
+\right)
+\right].
+$$
+
+Equivalently,
+
+$$
+\begin{aligned}
+Q^*_{\mathcal{H}}(s,a)
+&=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r
++
+\gamma
+\mathbb{E}_{a' \sim \pi^{\frac{1}{\beta}Q^*_{\mathcal{H}}}(\cdot \mid s')}
+\left[
+Q^*_{\mathcal{H}}(s',a')
+-
+\beta
+\log
+\pi^{\frac{1}{\beta}Q^*_{\mathcal{H}}}
+\left(
+a' \mid s'
+\right)
+\right]
+\right].
+\end{aligned}
+$$
+
+Define the soft Bellman optimality operator $T^*_{\mathcal{H}}$ by
+
+$$
+\left(
+T^*_{\mathcal{H}}Q
+\right)(s,a)
+=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r
++
+\gamma
+\operatorname{LSE}_\beta
+\left(
+Q(s',\cdot)
+\right)
+\right].
+$$
+
+Then the soft Bellman optimality equation can be written as
+
+$$
+T^*_{\mathcal{H}}Q^*_{\mathcal{H}}
+=
+Q^*_{\mathcal{H}}.
+$$
+
+Conversely, if a bounded function $Q:\mathcal{S}\times\mathcal{A}\to\mathbb{R}$ satisfies
+
+$$
+T^*_{\mathcal{H}}Q
+=
+Q,
+$$
+
+then $Q=Q^*_{\mathcal{H}}$.
+
+Moreover, for any bounded initial function $Q_0$,
+
+$$
+\left(T^*_{\mathcal{H}}\right)^k Q_0
+\to
+Q^*_{\mathcal{H}}
+\quad
+\text{as } k\to\infty .
+$$
+
+The corresponding optimal policy is
+
+$$
+\pi^*_{\mathcal{H}}(\cdot \mid s)
+=
+\pi^{\frac{1}{\beta}Q^*_{\mathcal{H}}}(\cdot \mid s).
+$$
+
+<details>
+<summary>Proof</summary>
+
+The proof follows the same three steps as the hard-max case. The only new ingredient is one identity, which we state first.
+
+#### 0. A key identity
+
+For any bounded $Q$, any policy $\pi$, and any state $s$,
+
+$$
+\operatorname{LSE}_\beta
+\left(
+Q(s,\cdot)
+\right)
+-
+\mathbb{E}_{a \sim \pi(\cdot \mid s)}
+\left[
+Q(s,a) - \beta \log \pi(a \mid s)
+\right]
+=
+\beta
+D_{\mathrm{KL}}
+\left(
+\pi(\cdot \mid s)
+\,\|\,
+\pi^{\frac{1}{\beta}Q}(\cdot \mid s)
+\right).
+$$
+
+The left side is the gap between the soft maximum and the expected soft value that the policy $\pi$ actually achieves. The identity says this gap is exactly a KL divergence: it measures how far $\pi$ is from the softmax policy of $Q$.
+
+This can be checked directly. By definition of the softmax policy,
+
+$$
+\log \pi^{\frac{1}{\beta}Q}(a \mid s)
+=
+\frac{1}{\beta} Q(s,a)
+-
+\frac{1}{\beta}
+\operatorname{LSE}_\beta
+\left(
+Q(s,\cdot)
+\right).
+$$
+
+Substituting this into the definition of the KL divergence gives
+
+$$
+\beta
+D_{\mathrm{KL}}
+\left(
+\pi
+\,\|\,
+\pi^{\frac{1}{\beta}Q}
+\right)
+=
+\beta \sum_a \pi(a \mid s) \log \pi(a \mid s)
+-
+\sum_a \pi(a \mid s) Q(s,a)
++
+\operatorname{LSE}_\beta
+\left(
+Q(s,\cdot)
+\right),
+$$
+
+and rearranging gives the identity.
+
+Now apply this identity inside the soft Bellman operator. Evaluating the identity at the next state $s'$ and taking expectations over $(r,s') \sim p(\cdot \mid s,a)$,
+
+$$
+\begin{aligned}
+\left(
+T^\pi_{\mathcal{H}} Q
+\right)(s,a)
+&=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r
++
+\gamma
+\,
+\mathbb{E}_{a' \sim \pi(\cdot \mid s')}
+\left[
+Q(s',a')
+-
+\beta \log \pi(a' \mid s')
+\right]
+\right]
+\\
+&=
+\mathbb{E}_{(r,s') \sim p(\cdot \mid s,a)}
+\left[
+r
++
+\gamma
+\operatorname{LSE}_\beta
+\left(
+Q(s',\cdot)
+\right)
+\right]
+-
+\gamma \beta
+\,
+\mathbb{E}_{s' \sim p(\cdot \mid s,a)}
+\left[
+D_{\mathrm{KL}}
+\left(
+\pi(\cdot \mid s')
+\,\|\,
+\pi^{\frac{1}{\beta}Q}(\cdot \mid s')
+\right)
+\right]
+\\
+&=
+\left(
+T^*_{\mathcal{H}} Q
+\right)(s,a)
+-
+\gamma \beta
+\,
+\mathbb{E}_{s' \sim p(\cdot \mid s,a)}
+\left[
+D_{\mathrm{KL}}
+\left(
+\pi(\cdot \mid s')
+\,\|\,
+\pi^{\frac{1}{\beta}Q}(\cdot \mid s')
+\right)
+\right].
+\end{aligned}
+$$
+
+In other words, the gap between the two operators is exactly an expected KL divergence:
+
+$$
+\left(
+T^*_{\mathcal{H}} Q
+\right)(s,a)
+-
+\left(
+T^\pi_{\mathcal{H}} Q
+\right)(s,a)
+=
+\gamma \beta
+\,
+\mathbb{E}_{s' \sim p(\cdot \mid s,a)}
+\left[
+D_{\mathrm{KL}}
+\left(
+\pi(\cdot \mid s')
+\,\|\,
+\pi^{\frac{1}{\beta}Q}(\cdot \mid s')
+\right)
+\right].
+$$
+
+The right side is nonnegative, so this gives an inequality: for any policy $\pi$ and any bounded $Q$,
+
+$$
+T^\pi_{\mathcal{H}} Q
+\le
+T^*_{\mathcal{H}} Q.
+$$
+
+The right side is zero exactly when the two distributions are equal at every next state, so the inequality becomes an equality exactly when $\pi$ is the softmax policy of $Q$:
+
+$$
+T^{\pi^{\frac{1}{\beta}Q}}_{\mathcal{H}} Q
+=
+T^*_{\mathcal{H}} Q.
+$$
+
+We will use both facts several times below.
+
+Note that the key identity also strengthens the earlier softmax derivation. There we showed that the softmax policy maximizes the expected Q-value plus entropy. The identity says more: it gives the maximum value and the exact cost of using any other policy,
+
+$$
+\max_{\pi(\cdot \mid s)}
+\,
+\mathbb{E}_{a \sim \pi(\cdot \mid s)}
+\left[
+Q(s,a)
+-
+\beta \log \pi(a \mid s)
+\right]
+=
+\operatorname{LSE}_\beta
+\left(
+Q(s,\cdot)
+\right),
+$$
+
+where the maximum is attained by $\pi^{\frac{1}{\beta}Q}(\cdot \mid s)$, and any other policy falls short by exactly $\beta D_{\mathrm{KL}}(\pi \,\|\, \pi^{\frac{1}{\beta}Q})$.
+
+#### 1. Existence and uniqueness of the fixed point
+
+First, $T^*_{\mathcal{H}}$ is a strict contraction with respect to $\|\cdot\|_\infty$. We use two facts about $\operatorname{LSE}_\beta$. It is monotone:
+
+$$
+x \le y \text{ componentwise}
+\implies
+\operatorname{LSE}_\beta(x) \le \operatorname{LSE}_\beta(y),
+$$
+
+and adding a constant to every entry shifts the output by the same constant:
+
+$$
+\operatorname{LSE}_\beta(x_1 + c, \ldots, x_n + c)
+=
+\operatorname{LSE}_\beta(x_1, \ldots, x_n) + c.
+$$
+
+Now take any $x, y$. Since $x_i \le y_i + \|x - y\|_\infty$ for every $i$, the two facts give
+
+$$
+\operatorname{LSE}_\beta(x)
+\le
+\operatorname{LSE}_\beta(y) + \|x - y\|_\infty.
+$$
+
+Swapping $x$ and $y$ gives the other direction, so
+
+$$
+\left|
+\operatorname{LSE}_\beta(x) - \operatorname{LSE}_\beta(y)
+\right|
+\le
+\|x - y\|_\infty.
+$$
+
+Therefore, for any bounded $Q_1, Q_2$,
+
+$$
+\begin{aligned}
+\left\|
+T^*_{\mathcal{H}} Q_1 - T^*_{\mathcal{H}} Q_2
+\right\|_\infty
+&\le
+\gamma
+\max_{s,a}
+\mathbb{E}_{s' \sim p(\cdot \mid s,a)}
+\left[
+\left|
+\operatorname{LSE}_\beta
+\left(
+Q_1(s',\cdot)
+\right)
+-
+\operatorname{LSE}_\beta
+\left(
+Q_2(s',\cdot)
+\right)
+\right|
+\mid s,a
+\right]
+\\
+&\le
+\gamma
+\left\|
+Q_1 - Q_2
+\right\|_\infty.
+\end{aligned}
+$$
+
+Note that the contraction proof for the hard-max operator used exactly these two properties of the max, and nothing else. $\operatorname{LSE}_\beta$ has both, so the same argument goes through.
+
+So $T^*_{\mathcal{H}}$ has a unique bounded fixed point. Denote it by $\bar{Q}$:
+
+$$
+T^*_{\mathcal{H}} \bar{Q} = \bar{Q}.
+$$
+
+Also, for any bounded $Q_0$, repeated application converges: $(T^*_{\mathcal{H}})^k Q_0 \to \bar{Q}$.
+
+At this point, we only know that $\bar{Q}$ is the fixed point of $T^*_{\mathcal{H}}$. We still need to show that it is the optimal soft Q-function.
+
+#### 2. Define $\bar{\pi}$ and show $\bar{Q} = Q^{\bar{\pi}}_{\mathcal{H}}$
+
+Next, define $\bar{\pi}$ to be the softmax policy of $\bar{Q}$:
+
+$$
+\bar{\pi}
+=
+\pi^{\frac{1}{\beta}\bar{Q}}.
+$$
+
+We do not yet know that $\bar{\pi}$ is optimal.
+
+By the equality case of the key identity, the KL term vanishes when the policy is the softmax policy of the same Q-function. So
+
+$$
+T^{\bar{\pi}}_{\mathcal{H}} \bar{Q}
+=
+T^*_{\mathcal{H}} \bar{Q}
+=
+\bar{Q}.
+$$
+
+This says $\bar{Q}$ is a bounded fixed point of $T^{\bar{\pi}}_{\mathcal{H}}$. But the soft Bellman equation theorem tells us that $T^{\bar{\pi}}_{\mathcal{H}}$ has a unique bounded fixed point, namely $Q^{\bar{\pi}}_{\mathcal{H}}$. Therefore
+
+$$
+\bar{Q}
+=
+Q^{\bar{\pi}}_{\mathcal{H}}.
+$$
+
+So the softmax policy $\bar{\pi}$ has soft Q-function $\bar{Q}$.
+
+#### 3. Show $\bar{\pi}$ is optimal
+
+It remains to show that no other policy can do better. We use two simple facts:
+
+$$
+T^\pi_{\mathcal{H}} Q
+\le
+T^*_{\mathcal{H}} Q
+\quad
+\text{for any policy } \pi,
+$$
+
+and if $Q_1 \le Q_2$ pointwise, then
+
+$$
+T^*_{\mathcal{H}} Q_1
+\le
+T^*_{\mathcal{H}} Q_2.
+$$
+
+The first fact is the key identity from step 0. The second holds because $\operatorname{LSE}_\beta$ and expectations are both monotone.
+
+For any policy $\pi$,
+
+$$
+Q^\pi_{\mathcal{H}}
+=
+T^\pi_{\mathcal{H}} Q^\pi_{\mathcal{H}}
+\le
+T^*_{\mathcal{H}} Q^\pi_{\mathcal{H}}.
+$$
+
+Applying the monotonicity of $T^*_{\mathcal{H}}$ repeatedly,
+
+$$
+Q^\pi_{\mathcal{H}}
+\le
+T^*_{\mathcal{H}} Q^\pi_{\mathcal{H}}
+\le
+\left(T^*_{\mathcal{H}}\right)^2 Q^\pi_{\mathcal{H}}
+\le
+\cdots.
+$$
+
+Since $T^*_{\mathcal{H}}$ is a contraction, $(T^*_{\mathcal{H}})^k Q^\pi_{\mathcal{H}} \to \bar{Q}$. Therefore $Q^\pi_{\mathcal{H}} \le \bar{Q}$ for every policy $\pi$.
+
+$$
+Q^{\bar{\pi}}_{\mathcal{H}} = \bar{Q}
+\quad
+\text{and}
+\quad
+Q^\pi_{\mathcal{H}} \le \bar{Q}
+\quad
+\forall \pi.
+$$
+
+Thus $\bar{\pi}$ is an optimal policy, and $\bar{Q}$ is the optimal soft Q-function: $Q^*_{\mathcal{H}} = \bar{Q}$. This also gives the claimed form of the optimal policy, $\pi^*_{\mathcal{H}} = \pi^{\frac{1}{\beta}Q^*_{\mathcal{H}}}$.
+
+Finally, if a bounded function $Q$ satisfies the soft Bellman optimality equation, then $T^*_{\mathcal{H}} Q = Q$. Since $T^*_{\mathcal{H}}$ has a unique fixed point, $Q = Q^*_{\mathcal{H}}$.
+
+</details>
+
+### Soft Q-learning
+
+The theory above gives us soft Q-iteration:
+
+$$
+\begin{aligned}
+Q_{k+1}
+&=
+T^*_{\mathcal{H}} Q_k,
+\\
+\lim_{k \to \infty} Q_k
+&=
+Q^*_{\mathcal{H}}.
+\end{aligned}
+$$
+
+Earlier, we derived the DQN algorithm from Q-iteration. Now we can apply the same idea to soft Q-iteration, which gives the following Soft Q-learning algorithm:[^haarnoja2017-soft-q-learning]
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: Soft Q-learning} \\
+\hline
+\text{Initialize } Q_\phi \text{ and target network } Q_{\phi^-} \\
+\text{Initialize replay buffer } \mathcal{D} \\
+\textbf{repeat} \\
+\quad a \sim \pi^{\frac{1}{\beta}Q_\phi}(\cdot \mid s) \\
+\quad \text{Take action } a \text{ and observe } (r,s') \\
+\quad \mathcal{D} \leftarrow \mathcal{D} \cup \{(s,a,r,s')\} \\
+\quad \textbf{for each sampled minibatch } B \subset \mathcal{D} \textbf{ do} \\
+\quad\quad y_i \leftarrow
+r_i+\gamma
+\operatorname{LSE}_\beta
+\left(
+Q_{\phi^-}(s_i',\cdot)
+\right),
+\quad (s_i,a_i,r_i,s_i') \in B \\
+\quad\quad \phi \leftarrow \phi
+-\alpha_Q \nabla_\phi
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_\phi(s_i,a_i)-\operatorname{sg}[y_i]
+\right)^2
+\\
+\quad\quad \text{Every } C \text{ gradient updates, set } \phi^- \leftarrow \phi \\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+Compared with DQN, two parts of the algorithm have changed.
+
+First, action sampling changes from $\epsilon$-greedy sampling to sampling from the softmax policy:
+
+$$
+\begin{array}{ll}
+\text{DQN:}
+&
+a \sim
+\begin{cases}
+\displaystyle\arg\max_{a \in \mathcal{A}} Q_\phi(s,a), & \text{w.p. } 1-\epsilon, \\
+\operatorname{Uniform}(\mathcal{A}), & \text{w.p. } \epsilon,
+\end{cases}
+\\[0.5em]
+\text{Soft Q-learning:}
+&
+a \sim \pi^{\frac{1}{\beta}Q_\phi}(\cdot \mid s).
+\end{array}
+$$
+
+Second, target evaluation changes from a hard maximum to a soft maximum:
+
+$$
+\begin{array}{ll}
+\text{DQN:}
+&
+r_i+\gamma \max_{a' \in \mathcal{A}} Q_{\phi^-}(s_i',a').
+\\[0.5em]
+\text{Soft Q-learning:}
+&
+r_i+\gamma
+\operatorname{LSE}_\beta
+\left(
+Q_{\phi^-}(s_i',\cdot)
+\right).
+\end{array}
+$$
+
+Note that Soft Q-learning removes explicit $\epsilon$-greedy exploration from action sampling, because the maximum-entropy objective already encourages exploration.
+
+In a finite action space, both soft replacements are straightforward to implement. We can evaluate $Q_\phi(s,a)$ for every action, normalize the softmax probabilities, and sample from them. We can also compute $\operatorname{LSE}_\beta$ by summing over all actions.
+
+The continuous case is different. Recall from [Q-learning with continuous actions](#q-learning-with-continuous-actions) that continuous action spaces are difficult because $\max$ and $\arg\max$ over actions are no longer easy to compute. Soft Q-learning has the same issue in soft form.
+
+For target evaluation, we need
+
+$$
+\operatorname{LSE}_\beta
+\left(
+Q_{\phi^-}(s',\cdot)
+\right)
+=
+\beta
+\log
+\int_{\mathcal{A}}
+\exp
+\left(
+\frac{1}{\beta}
+Q_{\phi^-}(s',a')
+\right)
+da'.
+$$
+
+For action sampling, we need
+
+$$
+a \sim \pi^{\frac{1}{\beta}Q_\phi}(\cdot \mid s),
+\qquad
+\pi^{\frac{1}{\beta}Q_\phi}(a \mid s)
+\propto
+\exp
+\left(
+\frac{1}{\beta}
+Q_\phi(s,a)
+\right).
+$$
+
+For a general neural network $Q_\phi$, the log-sum-exp term is intractable to compute, and sampling from the softmax policy is not straightforward. The Soft Q-learning paper solves these problems as follows.
+
+#### Estimating the target
+
+The log-sum-exp term in the target can be estimated by importance sampling. For any proposal distribution $q(\cdot \mid s')$ whose density is positive on the action space,
+
+$$
+\int_{\mathcal{A}} \exp\left(\frac{1}{\beta}Q(s',a')\right) da'
+=
+\mathbb{E}_{a' \sim q(\cdot \mid s')}
+\left[
+\frac{\exp\left(\frac{1}{\beta}Q(s',a')\right)}
+{q(a' \mid s')}
+\right].
+$$
+
+With samples $a'_1,\ldots,a'_M \sim q(\cdot \mid s')$, this gives the estimate
+
+$$
+\widehat V_Q(s')
+=
+\beta
+\log
+\left(
+\frac{1}{M}
+\sum_{j=1}^{M}
+\frac{
+\exp
+\left(
+\frac{1}{\beta}
+Q(s',a'_j)
+\right)
+}{
+q(a'_j \mid s')
+}
+\right).
+$$
+
+So the soft Q-learning target becomes
+
+$$
+y_i
+=
+r_i+\gamma \widehat V_{Q_{\phi^-}}(s_i').
+$$
+
+One simple choice is to sample actions uniformly from a bounded action space. For example, if $\mathcal{A}=[-1,1]^d$, then
+
+$$
+q(a'\mid s')
+=
+\frac{1}{2^d}.
+$$
+
+The estimate becomes
+
+$$
+\widehat V_Q(s')
+=
+\beta
+\log
+\sum_{j=1}^{M}
+\exp
+\left(
+\frac{1}{\beta}
+Q(s',a'_j)
+\right)
+-
+\beta \log M
++
+\beta d\log 2.
+$$
+
+#### Sampling from the softmax policy
+
+How can we draw an action $a \sim \pi^{\frac{1}{\beta}Q_\phi}(\cdot \mid s)$ for a given state $s$?
+
+Generic sampling methods such as MCMC could be used in principle, but they would require an iterative sampling procedure for every action, which is too expensive in practice.
+
+Soft Q-learning instead trains a separate network to be the sampler. Let
+
+$$
+a
+=
+f_\theta(\xi;s),
+\qquad
+\xi \sim \mathcal{N}(0,I).
+$$
+
+For each state $s$, the noise-conditioned network $f_\theta$ induces a distribution over actions. Call this distribution $\pi_\theta(\cdot \mid s)$. Ideally, we want
+
+$$
+\pi_\theta(\cdot \mid s)
+\approx
+\pi^{\frac{1}{\beta}Q_\phi}(\cdot \mid s).
+$$
+
+Equivalently, we would like to minimize
+
+$$
+J_\pi(\theta;s)
+=
+D_{\mathrm{KL}}
+\left(
+\pi_\theta(\cdot \mid s)
+\,
+\middle\|\,
+\pi^{\frac{1}{\beta}Q_\phi}(\cdot \mid s)
+\right).
+$$
+
+Writing $Z_\phi(s)$ for the normalizing constant, expanding the KL divergence gives
+
+$$
+\begin{aligned}
+J_\pi(\theta;s)
+&=
+\mathbb{E}_{a \sim \pi_\theta(\cdot \mid s)}
+\left[
+\log \pi_\theta(a \mid s)
+-
+\frac{1}{\beta}
+Q_\phi(s,a)
+\right]
++
+\log Z_\phi(s)
+\\
+&=
+\mathbb{E}_{\xi}
+\left[
+\log \pi_\theta
+\left(
+f_\theta(\xi;s)
+\mid s
+\right)
+-
+\frac{1}{\beta}
+Q_\phi
+\left(
+s,
+f_\theta(\xi;s)
+\right)
+\right]
++
+\log Z_\phi(s).
+\end{aligned}
+$$
+
+To train $f_\theta$, we need the gradient of this objective:
+
+$$
+\nabla_\theta J_\pi(\theta;s)
+=
+\nabla_\theta
+\mathbb{E}_{\xi}
+\left[
+\log \pi_\theta
+\left(
+f_\theta(\xi;s)
+\mid s
+\right)
+-
+\frac{1}{\beta}
+Q_\phi
+\left(
+s,
+f_\theta(\xi;s)
+\right)
+\right].
+$$
+
+The $Q$ term is straightforward. We can differentiate $Q_\phi(s,f_\theta(\xi;s))$ through the sampler $f_\theta$.
+
+The problem is the density term $\log \pi_\theta(a \mid s)$. The network $f_\theta$ lets us sample actions, but it does not directly give their probabilities. In other words, we can generate $a=f_\theta(\xi;s)$, but we generally cannot evaluate $\pi_\theta(a \mid s)$.
+
+One way around this is to restrict the sampler to a distribution with a tractable density. For example, if the policy is Gaussian and the network outputs $\mu_\theta(s)$ and $\sigma_\theta(s)$, then we can sample
+
+$$
+a
+=
+\mu_\theta(s)
++
+\sigma_\theta(s)\odot \xi,
+\qquad
+\xi \sim \mathcal{N}(0,I),
+$$
+
+and evaluate $\log \pi_\theta(a \mid s)$ explicitly. Later, Soft Actor-Critic uses this kind of tractable stochastic policy.[^haarnoja2018-sac]
+
+Soft Q-learning takes a different route. It keeps the more expressive implicit sampler $f_\theta$, and estimates the sampler update from samples without evaluating $\log \pi_\theta(a \mid s)$ directly.
+
+##### Amortized SVGD
+
+Soft Q-learning uses amortized SVGD to update the sampler. Instead of trying to evaluate the sampler density $\pi_\theta(a \mid s)$, it directly updates the sampler toward the same target as before:
+
+$$
+\pi_\theta(\cdot \mid s)
+\approx
+\pi^{\frac{1}{\beta}Q_\phi}(\cdot \mid s).
+$$
+
+The idea of amortized SVGD is to use samples from the sampler itself. If the sampled actions are not distributed like the target softmax policy, we ask how those actions should move to look more like samples from the target. Then we update $f_\theta$ so that future samples are already shifted in those directions.
+
+Concretely, first sample particles from the current sampler:
+
+$$
+a_k=f_\theta(\xi_k;s),
+\qquad
+\xi_k\sim\mathcal{N}(0,I),
+\qquad
+k=1,\ldots,K.
+$$
+
+SVGD assigns a movement direction to each particle:
+
+$$
+\begin{aligned}
+\Delta(a)
+&=
+\frac{1}{K}
+\sum_{j=1}^{K}
+\left[
+\kappa(a_j,a)
+\nabla_{a_j}
+\log
+\pi^{\frac{1}{\beta}Q_\phi}(a_j \mid s)
++
+\nabla_{a_j}
+\kappa(a_j,a)
+\right]
+\\
+&=
+\frac{1}{K}
+\sum_{j=1}^{K}
+\left[
+\kappa(a_j,a)
+\nabla_{a_j}
+\left(
+\frac{1}{\beta}Q_\phi(s,a_j)
+\right)
++
+\nabla_{a_j}
+\kappa(a_j,a)
+\right].
+\end{aligned}
+$$
+
+Here $\kappa$ is a kernel, which measures similarity between actions. The first term pulls particles toward high-density actions. The second term makes nearby particles repel each other, which helps the particles represent a distribution instead of all chasing the same high-value action.
+
+Ordinary SVGD would use this velocity field to iteratively move particles toward the target distribution. Amortized SVGD instead uses the velocity field as a training signal for the sampler: update $\theta$ so that $f_\theta$ produces actions shifted in those directions.
+
+$$
+\Delta \theta
+\propto
+\mathbb{E}_{\xi}
+\left[
+\Delta
+\left(
+f_\theta(\xi;s)
+\right)^\top
+\frac{\partial f_\theta(\xi;s)}{\partial \theta}
+\right].
+$$
+
+#### Algorithm summary
+
+Putting the target update and sampler update together, we get the following algorithm:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: Soft Q-learning} \\
+\hline
+\text{Initialize } Q_\phi, f_\theta \text{ and target network } Q_{\phi^-} \\
+\text{Initialize replay buffer } \mathcal{D} \\
+\textbf{repeat} \\
+\quad \xi \sim \mathcal{N}(0,I) \\
+\quad a \leftarrow f_\theta(\xi;s) \\
+\quad \text{Take action } a \text{ and observe } (r,s') \\
+\quad \mathcal{D} \leftarrow \mathcal{D} \cup \{(s,a,r,s')\} \\
+\quad \textbf{for each sampled minibatch } B \subset \mathcal{D} \textbf{ do} \\
+\quad\quad \text{For each } i \in B,\text{ sample } a_{ij}' \sim q(\cdot \mid s_i'),\ j=1,\ldots,M \\
+\quad\quad \widehat V_i \leftarrow
+\beta \log
+\left(
+\displaystyle
+\frac{1}{M}
+\sum_{j=1}^{M}
+\frac{
+\exp
+\left(
+\frac{1}{\beta}Q_{\phi^-}(s_i',a_{ij}')
+\right)
+}{
+q(a_{ij}' \mid s_i')
+}
+\right)
+\\
+\quad\quad y_i \leftarrow
+r_i+\gamma \widehat V_i
+\\
+\quad\quad \phi \leftarrow \phi
+-\alpha_Q \nabla_\phi
+\displaystyle
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_\phi(s_i,a_i)-\operatorname{sg}[y_i]
+\right)^2
+\\
+\quad\quad \text{For each } i \in B,\text{ sample particles } \tilde a_{ik}=f_\theta(\xi_{ik};s_i),\ k=1,\ldots,K \\
+\quad\quad \text{Compute the SVGD field } \Delta_i \text{ using } Q_\phi \text{ and the particles } \tilde a_{ik} \\
+\quad\quad \text{Compute the sampler update direction } \widehat{\Delta\theta} \text{ from } \Delta_i \\
+\quad\quad \theta \leftarrow \theta+\alpha_\pi \widehat{\Delta\theta} \\
+\quad\quad \text{Every } C \text{ gradient updates, set } \phi^- \leftarrow \phi \\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+The algorithm resembles actor-critic structurally, but $f_\theta$ is better understood as an approximate sampler for the softmax policy defined by $Q_\phi$, not as a separate policy being evaluated by $Q_\phi$.
+
+#### Why use an expressive sampler?
+
+Why does Soft Q-learning keep the expressive sampler instead of using a simpler Gaussian policy that would avoid amortized SVGD altogether?
+
+The paper motivates this choice by pointing to multimodality. The softmax policy defined by the Q-function can assign probability to multiple high-value action regions, while a deterministic policy or a simple Gaussian policy tends to represent only one behavior mode. The paper argues that this can help exploration, because the agent can keep several behaviors available before it knows which one is best, and can also help pretraining, because a broad maximum-entropy policy can contain several useful behaviors for later tasks. The swimmer, quadruped maze, and quadruped pretraining experiments illustrate these points.[^haarnoja2017-soft-q-learning]
+
+### Soft Actor-Critic (SAC)
+
+Note.
+
+- SAC is not Q-learning in the same sense as DQN or Soft Q-learning. I include it here because it belongs to the same maximum-entropy RL story, and it is easiest to understand right after Soft Q-learning.
+- There are two SAC papers.[^haarnoja2018-sac][^haarnoja2018-sac-applications] The second paper refines the original SAC algorithm and is closer to the SAC implementation that is standard today. In this section, we will mainly follow that later version.
+
+Soft Q-learning tries to learn the optimal soft Q-function directly. Soft Actor-Critic takes a slightly different view: it starts from policy iteration.
+
+Policy iteration alternates two steps:
+
+$$
+\begin{array}{l}
+\textbf{repeat} \\
+\quad Q^{\pi_k} \leftarrow \text{evaluate the current policy } \pi_k \\
+\quad \pi_{k+1} \leftarrow \text{improve the policy using } Q^{\pi_k} \\
+\textbf{until convergence.}
+\end{array}
+$$
+
+In classical policy iteration, this improvement step is greedy. After evaluating $\pi_k$, we define the next policy by choosing the action with the largest current Q-value:
+
+$$
+\pi_{k+1}(s)
+=
+\arg\max_a
+Q^{\pi_k}(s,a).
+$$
+
+The policy-gradient methods from the previous post can also be viewed as approximate versions of this evaluate-and-improve loop. The critic evaluates the current policy, and the actor update improves the policy using that estimate.
+
+SAC uses the maximum-entropy version of the same idea. The policy evaluation step is the soft version of the critic update we saw in actor-critic methods. Given a sampled transition $(s_i,a_i,r_i,s_i')$, we first sample the next action from the current policy:
+
+$$
+a_i' \sim \pi_{\theta_k}(\cdot \mid s_i').
+$$
+
+Then we compute the soft Bellman target:
+
+$$
+y_i
+=
+r_i
++
+\gamma
+\left[
+Q_{\phi^-}(s_i',a_i')
+-
+\beta
+\log
+\pi_{\theta_k}(a_i' \mid s_i')
+\right].
+$$
+
+The critic is trained to fit this target:
+
+$$
+J_Q(\phi)
+=
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_\phi(s_i,a_i)
+-
+\operatorname{sg}[y_i]
+\right)^2.
+$$
+
+For the policy improvement step, SAC uses the maximum-entropy version of the greedy update. We already showed that, for the maximum-entropy objective, the greedy policy for a given Q-function is the softmax policy
+
+$$
+\pi^{\frac{1}{\beta}Q^{\pi_k}_{\mathcal{H}}}(\cdot \mid s).
+$$
+
+SAC chooses the closest policy to this softmax policy inside a policy class $\Pi$ by minimizing the KL divergence. We will make the policy class concrete below.
+
+$$
+\pi_{k+1}(\cdot \mid s)
+=
+\arg\min_{\pi \in \Pi}
+D_{\mathrm{KL}}
+\left(
+\pi(\cdot \mid s)
+\,\|\,
+\pi^{\frac{1}{\beta}Q^{\pi_k}_{\mathcal{H}}}(\cdot \mid s)
+\right).
+$$
+
+In the actor-critic methods from the previous post, the policy update came directly from a policy-gradient estimate:
+
+$$
+\nabla_\theta J(\theta)
+\approx
+\nabla_\theta \log \pi_\theta(a_t \mid s_t)\hat{A}_t^{(k)}.
+$$
+
+So the update direction was explicitly tied to the objective $J(\theta)$. Here, the improvement step is written differently: we choose a new policy by a KL projection onto the softmax policy induced by $Q^{\pi_k}_{\mathcal{H}}$. It is not immediately obvious that this projection really improves the policy. The next theorem shows that it does, in the exact policy-iteration setting.
+
+Theorem. Suppose $Q^{\pi_k}_{\mathcal{H}}$ is the exact soft Q-function of the current policy $\pi_k \in \Pi$. Define the next policy by
+
+$$
+\pi_{k+1}(\cdot \mid s)
+=
+\arg\min_{\pi \in \Pi}
+D_{\mathrm{KL}}
+\left(
+\pi(\cdot \mid s)
+\,\|\,
+\pi^{\frac{1}{\beta}Q^{\pi_k}_{\mathcal{H}}}(\cdot \mid s)
+\right).
+$$
+
+Repeating this improvement step converges to a policy $\pi_\star \in \Pi$ that is optimal within $\Pi$:
+
+$$
+Q^{\pi_\star}_{\mathcal{H}}(s,a)
+\ge
+Q^{\pi}_{\mathcal{H}}(s,a)
+\quad
+\forall \pi \in \Pi,\ \forall s,a.
+$$
+
+<details>
+<summary>Proof</summary>
+
+Since $\pi_{k+1}$ minimizes the KL divergence and $\pi_k$ is also feasible,
+
+$$
+D_{\mathrm{KL}}
+\left(
+\pi_{k+1}(\cdot \mid s)
+\,\|\,
+\pi^{\frac{1}{\beta}Q^{\pi_k}_{\mathcal{H}}}(\cdot \mid s)
+\right)
+\le
+D_{\mathrm{KL}}
+\left(
+\pi_k(\cdot \mid s)
+\,\|\,
+\pi^{\frac{1}{\beta}Q^{\pi_k}_{\mathcal{H}}}(\cdot \mid s)
+\right).
+$$
+
+Now use the key identity from the soft Bellman optimality proof. For any policy $\pi$,
+
+$$
+\left(T^\pi_{\mathcal{H}}Q\right)(s,a)
+=
+\left(T^*_{\mathcal{H}}Q\right)(s,a)
+-
+\gamma\beta
+\mathbb{E}_{s' \sim p(\cdot \mid s,a)}
+\left[
+D_{\mathrm{KL}}
+\left(
+\pi(\cdot \mid s')
+\,\|\,
+\pi^{\frac{1}{\beta}Q}(\cdot \mid s')
+\right)
+\right].
+$$
+
+Apply this at $Q=Q^{\pi_k}_{\mathcal{H}}$, once with $\pi_k$ and once with $\pi_{k+1}$. Since $Q^{\pi_k}_{\mathcal{H}}$ is the fixed point of $T^{\pi_k}_{\mathcal{H}}$,
+
+$$
+Q^{\pi_k}_{\mathcal{H}}(s,a)
+=
+\left(
+T^{\pi_k}_{\mathcal{H}}Q^{\pi_k}_{\mathcal{H}}
+\right)(s,a)
+=
+\left(
+T^*_{\mathcal{H}}Q^{\pi_k}_{\mathcal{H}}
+\right)(s,a)
+-
+\gamma\beta
+\mathbb{E}_{s' \sim p(\cdot \mid s,a)}
+\left[
+D_{\mathrm{KL}}
+\left(
+\pi_k(\cdot \mid s')
+\,\|\,
+\pi^{\frac{1}{\beta}Q^{\pi_k}_{\mathcal{H}}}(\cdot \mid s')
+\right)
+\right],
+$$
+
+while
+
+$$
+\left(
+T^{\pi_{k+1}}_{\mathcal{H}}Q^{\pi_k}_{\mathcal{H}}
+\right)(s,a)
+=
+\left(
+T^*_{\mathcal{H}}Q^{\pi_k}_{\mathcal{H}}
+\right)(s,a)
+-
+\gamma\beta
+\mathbb{E}_{s' \sim p(\cdot \mid s,a)}
+\left[
+D_{\mathrm{KL}}
+\left(
+\pi_{k+1}(\cdot \mid s')
+\,\|\,
+\pi^{\frac{1}{\beta}Q^{\pi_k}_{\mathcal{H}}}(\cdot \mid s')
+\right)
+\right].
+$$
+
+Subtracting the two equations cancels the $T^*_{\mathcal{H}}Q^{\pi_k}_{\mathcal{H}}$ term. Since the new policy has no larger KL divergence than the old policy, we get
+
+$$
+T^{\pi_{k+1}}_{\mathcal{H}}Q^{\pi_k}_{\mathcal{H}}
+\ge
+Q^{\pi_k}_{\mathcal{H}}.
+$$
+
+So one soft Bellman backup using the new policy already improves on the old Q-function. Then we apply the same new-policy Bellman operator repeatedly:
+
+$$
+Q^{\pi_k}_{\mathcal{H}}
+\le
+T^{\pi_{k+1}}_{\mathcal{H}}Q^{\pi_k}_{\mathcal{H}}
+\le
+\left(T^{\pi_{k+1}}_{\mathcal{H}}\right)^2Q^{\pi_k}_{\mathcal{H}}
+\le
+\cdots
+\to
+Q^{\pi_{k+1}}_{\mathcal{H}}.
+$$
+
+Therefore,
+
+$$
+Q^{\pi_{k+1}}_{\mathcal{H}}
+\ge
+Q^{\pi_k}_{\mathcal{H}}.
+$$
+
+So each exact soft policy improvement step produces a policy whose soft Q-function is no worse than before.
+
+Repeating this argument gives a monotone sequence
+
+$$
+Q^{\pi_0}_{\mathcal{H}}
+\le
+Q^{\pi_1}_{\mathcal{H}}
+\le
+Q^{\pi_2}_{\mathcal{H}}
+\le
+\cdots.
+$$
+
+This monotone sequence is bounded above by the optimal soft Q-function, so it converges. Let the limiting policy be $\pi_\star$.
+
+At convergence, the policy improvement step is stationary. Therefore $\pi_\star$ is the KL minimizer for its own Q-function:
+
+$$
+D_{\mathrm{KL}}
+\left(
+\pi_\star(\cdot \mid s)
+\,\|\,
+\pi^{\frac{1}{\beta}Q^{\pi_\star}_{\mathcal{H}}}(\cdot \mid s)
+\right)
+\le
+D_{\mathrm{KL}}
+\left(
+\pi(\cdot \mid s)
+\,\|\,
+\pi^{\frac{1}{\beta}Q^{\pi_\star}_{\mathcal{H}}}(\cdot \mid s)
+\right)
+\quad
+\forall \pi \in \Pi.
+$$
+
+Now compare $\pi_\star$ against any other policy $\pi \in \Pi$. Using the same key identity at $Q=Q^{\pi_\star}_{\mathcal{H}}$ gives
+
+$$
+T^\pi_{\mathcal{H}}Q^{\pi_\star}_{\mathcal{H}}
+\le
+T^{\pi_\star}_{\mathcal{H}}Q^{\pi_\star}_{\mathcal{H}}
+=
+Q^{\pi_\star}_{\mathcal{H}}.
+$$
+
+Applying $T^\pi_{\mathcal{H}}$ repeatedly preserves the inequality and converges to $Q^\pi_{\mathcal{H}}$:
+
+$$
+Q^\pi_{\mathcal{H}}
+=
+\lim_{m\to\infty}
+\left(T^\pi_{\mathcal{H}}\right)^m
+Q^{\pi_\star}_{\mathcal{H}}
+\le
+Q^{\pi_\star}_{\mathcal{H}}.
+$$
+
+Thus no policy in $\Pi$ has a larger soft Q-function than $\pi_\star$.
+
+</details>
+
+Like Soft Q-learning, SAC represents the policy by sampling through a network:
+
+$$
+a=f_\theta(\xi;s),
+\qquad
+\xi \sim \mathcal{N}(0,I).
+$$
+
+As we saw in Soft Q-learning, the gradient of the KL divergence in the actor update is
+
+$$
+\nabla_\theta D_{\mathrm{KL}}\left(\pi_\theta(\cdot \mid s)\,\|\,\pi^{\frac{1}{\beta}Q_\phi}(\cdot \mid s)\right)=\mathbb{E}_{\xi}\left[\nabla_\theta\log \pi_\theta(f_\theta(\xi;s) \mid s)-\frac{1}{\beta}\nabla_\theta Q_\phi(s,f_\theta(\xi;s))\right].
+$$
+
+As before, the issue is whether we can evaluate the density term $\log \pi_\theta(a \mid s)$. Unlike Soft Q-learning, SAC chooses a policy class whose density can be evaluated explicitly.
+
+For example, SAC can use a squashed Gaussian policy:
+
+$$
+a
+=
+\tanh
+\left(
+\mu_\theta(s)
++
+\exp(\tau_\theta(s))\odot \xi
+\right),
+\qquad
+\xi \sim \mathcal{N}(0,I).
+$$
+
+$$
+\log \pi_\theta(a \mid s)
+=
+-\sum_{j=1}^{d}
+\tau_{\theta,j}(s)
+-
+\frac{1}{2}
+\sum_{j=1}^{d}
+\left(
+\frac{
+\tanh^{-1}(a_j)-\mu_{\theta,j}(s)
+}{
+\exp(\tau_{\theta,j}(s))
+}
+\right)^2
+-
+\sum_{j=1}^{d}
+\log(1-a_j^2)
++
+C.
+$$
+
+With this explicit density, SAC can optimize the actor objective directly by backpropagation, without using amortized SVGD.
+
+Putting these pieces together gives the SAC update:
+
+$$
+\begin{array}{l}
+\hline
+\textbf{Algorithm: Soft Actor-Critic} \\
+\hline
+\text{Initialize } Q_\phi,\ \pi_\theta,\ \text{target network } Q_{\phi^-} \\
+\text{Initialize replay buffer } \mathcal{D} \\
+\textbf{repeat} \\
+\quad a \sim \pi_\theta(\cdot \mid s) \\
+\quad \text{Take action } a \text{ and observe } (r,s') \\
+\quad \mathcal{D} \leftarrow \mathcal{D} \cup \{(s,a,r,s')\} \\
+\quad \textbf{for each sampled minibatch } B \subset \mathcal{D} \textbf{ do} \\
+\quad\quad a_i' \sim \pi_\theta(\cdot \mid s_i') \\
+\quad\quad y_i \leftarrow
+r_i
++
+\gamma
+\left[
+Q_{\phi^-}(s_i',a_i')
+-
+\beta \log \pi_\theta(a_i' \mid s_i')
+\right]
+\\
+\quad\quad \phi \leftarrow \phi
+-
+\alpha_Q
+\nabla_\phi
+\frac{1}{|B|}
+\sum_{i \in B}
+\frac{1}{2}
+\left(
+Q_\phi(s_i,a_i)
+-
+\operatorname{sg}[y_i]
+\right)^2
+\\
+\quad\quad \tilde a_i \leftarrow f_\theta(\xi_i;s_i),
+\qquad
+\xi_i \sim \mathcal{N}(0,I)
+\\
+\quad\quad \theta \leftarrow \theta
+-
+\alpha_\pi
+\nabla_\theta
+\frac{1}{|B|}
+\sum_{i \in B}
+\left[
+\beta \log \pi_\theta(\tilde a_i \mid s_i)
+-
+Q_\phi(s_i,\tilde a_i)
+\right]
+\\
+\quad\quad \phi^- \leftarrow \tau \phi^- + (1-\tau)\phi \\
+\quad \textbf{end for} \\
+\textbf{until convergence} \\
+\hline
+\end{array}
+$$
+
+The SAC update we derived has a form very similar to DDPG:
+
+$$
+\begin{alignedat}{3}
+&\textit{Target}
+\qquad
+&&\text{DDPG:}
+\qquad
+&&
+y_i
+=
+r_i
++
+\gamma
+Q_{\phi^-}(s_i',\mu_{\theta^-}(s_i')),
+\\
+&
+&&\text{SAC:}
+&&
+y_i
+=
+r_i
++
+\gamma
+\left[
+Q_{\phi^-}(s_i',a_i')
+-
+\beta
+\log
+\pi_\theta(a_i'\mid s_i')
+\right],
+\quad
+a_i'=f_\theta(\xi_i';s_i'),
+\quad
+\xi_i'\sim\mathcal{N}(0,I),
+\\[2mm]
+&\textit{Action}
+&&\text{DDPG:}
+&&
+a_i=\mu_\theta(s_i),
+\\
+&
+&&\text{SAC:}
+&&
+a_i=f_\theta(\xi_i;s_i),
+\quad
+\xi_i\sim\mathcal{N}(0,I),
+\\[2mm]
+&\textit{Actor}
+&&\text{DDPG:}
+&&
+\theta
+\leftarrow
+\theta
+-
+\alpha_\pi
+\nabla_\theta
+\frac{1}{|B|}
+\sum_i
+\left[
+-
+Q_\phi(s_i,\mu_\theta(s_i))
+\right],
+\\
+&
+&&\text{SAC:}
+&&
+\theta
+\leftarrow
+\theta
+-
+\alpha_\pi
+\nabla_\theta
+\frac{1}{|B|}
+\sum_i
+\left[
+\beta
+\log
+\pi_\theta(a_i\mid s_i)
+-
+Q_\phi(s_i,a_i)
+\right].
+\end{alignedat}
+$$
+
+When $\beta=0$, the SAC actor update is almost identical to the DDPG actor update. So the same overestimation issue can appear here as well. Recall that TD3 addressed this by using clipped double Q-learning. Practical SAC also uses clipped double Q-learning:
+
+$$
+y_i
+=
+r_i
++
+\gamma
+\left[
+\min_{j=1,2}
+Q_{\phi_j^-}(s_i',a_i')
+-
+\beta
+\log
+\pi_\theta(a_i'\mid s_i')
+\right],
+\qquad
+a_i'=f_\theta(\xi_i';s_i').
+$$
+
+$$
+\theta
+\leftarrow
+\theta
+-
+\alpha_\pi
+\nabla_\theta
+\frac{1}{|B|}
+\sum_i
+\left[
+\beta
+\log
+\pi_\theta(a_i\mid s_i)
+-
+\min_{j=1,2}
+Q_{\phi_j}(s_i,a_i)
+\right],
+\qquad
+a_i=f_\theta(\xi_i;s_i).
+$$
+
+The authors note that SAC can still learn hard tasks with a single Q-function, but two soft Q-functions significantly speed up training, especially on harder tasks.
+
+---
+
+This is the end of the third post. We started from the Bellman optimality equation, extended Q-learning to continuous actions, and then studied maximum entropy RL and SAC. For now, this is the end of the series, although I may add another post on offline or model-based reinforcement learning in the future.
+
+## References
+
+[^mnih2015-dqn]: Volodymyr Mnih, Koray Kavukcuoglu, David Silver, Andrei A. Rusu, Joel Veness, Marc G. Bellemare, Alex Graves, Martin Riedmiller, Andreas K. Fidjeland, Georg Ostrovski, Stig Petersen, Charles Beattie, Amir Sadik, Ioannis Antonoglou, Helen King, Dharshan Kumaran, Daan Wierstra, Shane Legg, and Demis Hassabis, [“Human-level control through deep reinforcement learning”](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf), *Nature*, 2015.
+
+[^baird1995-residual-algorithms]: Leemon Baird, [“Residual Algorithms: Reinforcement Learning with Function Approximation”](https://scispace.com/pdf/residual-algorithms-reinforcement-learning-with-function-150011hve2.pdf), *ICML*, 1995.
+
+[^yin2022-residual-gradient]: Shuyu Yin, Tao Luo, Peilin Liu, and Zhi-Qin John Xu, [“An Experimental Comparison Between Temporal Difference and Residual Gradient with Neural Network Approximation”](https://arxiv.org/abs/2205.12770), *arXiv*, 2022.
+
+[^zhang2020-deep-residual-rl]: Shangtong Zhang, Wendelin Boehmer, and Shimon Whiteson, [“Deep Residual Reinforcement Learning”](https://www.ifaamas.org/Proceedings/aamas2020/pdfs/p1611.pdf), *AAMAS*, 2020.
+
+[^fortunato2018-noisy-networks]: Meire Fortunato, Mohammad Gheshlaghi Azar, Bilal Piot, Jacob Menick, Ian Osband, Alex Graves, Vlad Mnih, Rémi Munos, Demis Hassabis, Olivier Pietquin, Charles Blundell, and Shane Legg, [“Noisy Networks for Exploration”](https://arxiv.org/abs/1706.10295), *ICLR*, 2018.
+
+[^vanhasselt2010-double-q-learning]: Hado van Hasselt, [“Double Q-learning”](https://proceedings.neurips.cc/paper/2010/hash/091d584fced301b442654dd8c23b3fc9-Abstract.html), *NeurIPS*, 2010.
+
+[^vanhasselt2016-double-dqn]: Hado van Hasselt, Arthur Guez, and David Silver, [“Deep Reinforcement Learning with Double Q-learning”](https://arxiv.org/abs/1509.06461), *AAAI*, 2016.
+
+[^kalashnikov2018-qt-opt]: Dmitry Kalashnikov, Alex Irpan, Peter Pastor, Julian Ibarz, Alexander Herzog, Eric Jang, Deirdre Quillen, Ethan Holly, Mrinal Kalakrishnan, Vincent Vanhoucke, and Sergey Levine, [“QT-Opt: Scalable Deep Reinforcement Learning for Vision-Based Robotic Manipulation”](https://arxiv.org/abs/1806.10293), *CoRL*, 2018.
+
+[^gu2016-naf]: Shixiang Gu, Timothy Lillicrap, Ilya Sutskever, and Sergey Levine, [“Continuous Deep Q-Learning with Model-Based Acceleration”](https://arxiv.org/abs/1603.00748), *ICML*, 2016.
+
+[^lillicrap2016-ddpg]: Timothy P. Lillicrap, Jonathan J. Hunt, Alexander Pritzel, Nicolas Heess, Tom Erez, Yuval Tassa, David Silver, and Daan Wierstra, [“Continuous Control with Deep Reinforcement Learning”](https://arxiv.org/abs/1509.02971), *ICLR*, 2016.
+
+[^silver2014-dpg]: David Silver, Guy Lever, Nicolas Heess, Thomas Degris, Daan Wierstra, and Martin Riedmiller, [“Deterministic Policy Gradient Algorithms”](https://proceedings.mlr.press/v32/silver14.html), *ICML*, 2014.
+
+[^fujimoto2018-td3]: Scott Fujimoto, Herke van Hoof, and David Meger, [“Addressing Function Approximation Error in Actor-Critic Methods”](https://arxiv.org/abs/1802.09477), *ICML*, 2018.
+
+[^haarnoja2017-soft-q-learning]: Tuomas Haarnoja, Haoran Tang, Pieter Abbeel, and Sergey Levine, [“Reinforcement Learning with Deep Energy-Based Policies”](https://arxiv.org/abs/1702.08165), *ICML*, 2017.
+
+[^haarnoja2018-sac]: Tuomas Haarnoja, Aurick Zhou, Pieter Abbeel, and Sergey Levine, [“Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor”](https://arxiv.org/abs/1801.01290), *ICML*, 2018.
+
+[^haarnoja2018-sac-applications]: Tuomas Haarnoja, Aurick Zhou, Kristian Hartikainen, George Tucker, Sehoon Ha, Jie Tan, Vikash Kumar, Henry Zhu, Abhishek Gupta, Pieter Abbeel, and Sergey Levine, [“Soft Actor-Critic Algorithms and Applications”](https://arxiv.org/abs/1812.05905), *arXiv*, 2018.

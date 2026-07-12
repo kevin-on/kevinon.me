@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Math Accent Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.css"
+    />
+    <style>
+      @font-face {
+        font-family: "PP Neue Montreal";
+        src: url("/fonts/PPNeueMontreal-Book.otf") format("opentype");
+        font-style: normal;
+        font-weight: 400;
+      }
+
+      @font-face {
+        font-family: "PP Neue Montreal";
+        src: url("/fonts/PPNeueMontreal-Medium.otf") format("opentype");
+        font-style: normal;
+        font-weight: 500;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+      }
+
+      body {
+        font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .lab {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        min-height: 100vh;
+      }
+
+      .theme-panel {
+        background: var(--vp-c-bg);
+        color: var(--vp-c-text-1);
+        padding: 3rem clamp(1.5rem, 3vw, 3rem) 4rem;
+      }
+
+      .theme-panel[data-theme="light"] {
+        color-scheme: light;
+        --vp-c-bg: #fefbf5;
+        --vp-c-bg-alt: #f8f3ea;
+        --vp-c-bg-elv: #fffefb;
+        --vp-c-bg-soft: #f5efe5;
+        --vp-c-text-1: #27241f;
+        --vp-c-text-2: rgba(39, 36, 31, 0.76);
+        --vp-c-text-3: rgba(39, 36, 31, 0.55);
+        --vp-c-divider: #e5dcce;
+      }
+
+      .theme-panel[data-theme="dark"] {
+        color-scheme: dark;
+        --vp-c-bg: #1b1b1f;
+        --vp-c-bg-alt: #161618;
+        --vp-c-bg-elv: #202127;
+        --vp-c-bg-soft: #202127;
+        --vp-c-text-1: rgba(255, 255, 245, 0.86);
+        --vp-c-text-2: rgba(235, 235, 245, 0.6);
+        --vp-c-text-3: rgba(235, 235, 245, 0.38);
+        --vp-c-divider: rgba(82, 82, 89, 0.32);
+      }
+
+      .panel-header {
+        margin-bottom: 1.75rem;
+      }
+
+      .eyebrow {
+        color: var(--vp-c-text-3);
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        margin: 0 0 0.45rem;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        font-family: "PP Neue Montreal", ui-sans-serif, system-ui, sans-serif;
+        font-size: clamp(1.65rem, 3vw, 2.15rem);
+        font-weight: 500;
+        letter-spacing: -0.025em;
+        line-height: 1.12;
+        margin: 0;
+      }
+
+      .palette-note {
+        color: var(--vp-c-text-2);
+        font-size: 0.875rem;
+        line-height: 1.55;
+        margin: 0.65rem 0 0;
+      }
+
+      .candidate {
+        border-top: 1px solid var(--vp-c-divider);
+        padding: 1.35rem 0 1.45rem;
+      }
+
+      .candidate-meta {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem 0.65rem;
+      }
+
+      .swatch {
+        background: var(--candidate);
+        border-radius: 999px;
+        display: inline-block;
+        height: 0.72rem;
+        width: 0.72rem;
+      }
+
+      .candidate-name {
+        font-weight: 500;
+      }
+
+      .candidate-code,
+      .contrast {
+        color: var(--vp-c-text-2);
+        font-size: 0.78rem;
+      }
+
+      .candidate-code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      .contrast {
+        margin-left: auto;
+      }
+
+      .math-sample {
+        color: var(--vp-c-text-1);
+        font-size: clamp(0.79rem, 1.25vw, 0.98rem);
+        margin-top: 0.65rem;
+        min-height: 5.25rem;
+      }
+
+      .math-sample .katex-display {
+        margin: 0;
+        text-align: left;
+      }
+
+      .math-sample .katex-display > .katex {
+        text-align: left;
+      }
+
+      @media (max-width: 880px) {
+        .lab {
+          grid-template-columns: 1fr;
+        }
+
+        .theme-panel {
+          padding-left: clamp(1rem, 5vw, 2.5rem);
+          padding-right: clamp(1rem, 5vw, 2.5rem);
+        }
+
+        .math-sample {
+          font-size: clamp(0.76rem, 3.3vw, 0.96rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="lab">
+      <section class="theme-panel" data-theme="light" aria-labelledby="light-title">
+        <header class="panel-header">
+          <p class="eyebrow">Light · #FEFBF5</p>
+          <h1 id="light-title">Math accent comparison</h1>
+          <p class="palette-note">
+            Blog background, text, secondary text, and divider colors are unchanged.
+          </p>
+        </header>
+        <div id="light-candidates"></div>
+      </section>
+
+      <section class="theme-panel" data-theme="dark" aria-labelledby="dark-title">
+        <header class="panel-header">
+          <p class="eyebrow">Dark · #1B1B1F</p>
+          <h1 id="dark-title">Math accent comparison</h1>
+          <p class="palette-note">
+            Blog background, text, secondary text, and divider colors are unchanged.
+          </p>
+        </header>
+        <div id="dark-candidates"></div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.js"></script>
+    <script>
+      const candidates = [
+        {
+          name: "Current brand",
+          light: { color: "#205EA6", contrast: "6.33:1" },
+          dark: { color: "#646CFF", contrast: "4.19:1" },
+        },
+        {
+          name: "Sapphire",
+          light: { color: "#1F5F9F", contrast: "6.36:1" },
+          dark: { color: "#85B7FF", contrast: "8.35:1" },
+        },
+        {
+          name: "Ink indigo",
+          light: { color: "#4B4F9F", contrast: "6.97:1" },
+          dark: { color: "#A8ADFF", contrast: "8.25:1" },
+        },
+        {
+          name: "Teal",
+          light: { color: "#176B66", contrast: "6.10:1" },
+          dark: { color: "#68D5C8", contrast: "9.76:1" },
+        },
+        {
+          name: "Amber",
+          light: { color: "#865D12", contrast: "5.67:1" },
+          dark: { color: "#E7BD67", contrast: "9.71:1" },
+        },
+        {
+          name: "Terracotta",
+          light: { color: "#9B4934", contrast: "5.99:1" },
+          dark: { color: "#F29A7F", contrast: "7.93:1" },
+        },
+        {
+          name: "Plum",
+          light: { color: "#7B467F", contrast: "6.72:1" },
+          dark: { color: "#D7A4D8", contrast: "8.33:1" },
+        },
+        {
+          name: "Olive",
+          light: { color: "#5F6B2D", contrast: "5.60:1" },
+          dark: { color: "#BDCC7A", contrast: "9.88:1" },
+        },
+        {
+          name: "Rose",
+          light: { color: "#9B3F5B", contrast: "6.24:1" },
+          dark: { color: "#F29AB3", contrast: "8.22:1" },
+        },
+      ]
+
+      const formula = String.raw`\begin{aligned}
+        J(\theta)-J(\accent{\theta_0})
+        &=J(\theta)-\mathbb{E}\!\left[V^{\pi_{\accent{\theta_0}}}(s_0)\right] \\
+        &=\mathbb{E}\!\left[\sum_t \gamma^t
+        A^{\pi_{\accent{\theta_0}}}(s_t,a_t)\right].
+      \end{aligned}`
+
+      function renderCandidateList(targetId, theme) {
+        const target = document.getElementById(targetId)
+
+        if (!target) return
+
+        candidates.forEach((candidate) => {
+          const values = candidate[theme]
+          const article = document.createElement("article")
+          article.className = "candidate"
+          article.style.setProperty("--candidate", values.color)
+
+          const meta = document.createElement("div")
+          meta.className = "candidate-meta"
+
+          const swatch = document.createElement("span")
+          swatch.className = "swatch"
+          swatch.setAttribute("aria-hidden", "true")
+
+          const name = document.createElement("span")
+          name.className = "candidate-name"
+          name.textContent = candidate.name
+
+          const code = document.createElement("code")
+          code.className = "candidate-code"
+          code.textContent = values.color
+
+          const contrast = document.createElement("span")
+          contrast.className = "contrast"
+          contrast.textContent = `contrast ${values.contrast}`
+
+          const sample = document.createElement("div")
+          sample.className = "math-sample"
+          sample.setAttribute(
+            "aria-label",
+            `${candidate.name}, ${theme} theme, accent ${values.color}`
+          )
+
+          meta.append(swatch, name, code, contrast)
+          article.append(meta, sample)
+          target.append(article)
+
+          katex.render(formula, sample, {
+            displayMode: true,
+            macros: {
+              "\\accent":
+                "\\htmlStyle{color:var(--candidate);}{#1}",
+            },
+            output: "htmlAndMathml",
+            strict: "ignore",
+            throwOnError: false,
+            trust: ({ command }) => command === "\\htmlStyle",
+          })
+        })
+      }
+
+      renderCandidateList("light-candidates", "light")
+      renderCandidateList("dark-candidates", "dark")
+    </script>
+  </body>
+</html>

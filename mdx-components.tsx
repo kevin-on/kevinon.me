@@ -41,15 +41,27 @@ function renderMath(source: string, displayMode: boolean) {
   try {
     html = katex.renderToString(source, {
       displayMode,
+      macros: {
+        "\\accent":
+          "\\htmlStyle{color:light-dark(rgb(155 63 91),rgb(242 154 179));}{#1}",
+      },
       output: "htmlAndMathml",
+      strict: (errorCode) =>
+        errorCode === "htmlExtension" ? "ignore" : "warn",
       throwOnError: true,
+      trust: ({ command }) => command === "\\htmlStyle",
     })
   } catch {
     html = katex.renderToString(source, {
       displayMode,
+      macros: {
+        "\\accent":
+          "\\htmlStyle{color:light-dark(rgb(155 63 91),rgb(242 154 179));}{#1}",
+      },
       output: "htmlAndMathml",
       strict: "ignore",
       throwOnError: false,
+      trust: ({ command }) => command === "\\htmlStyle",
     })
   }
 

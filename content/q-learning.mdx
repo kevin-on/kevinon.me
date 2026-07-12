@@ -3,6 +3,10 @@ export const metadata = {
   date: "2026-07-12",
   description:
     "From Bellman optimality and DQN to DDPG, TD3, maximum-entropy RL, and SAC.",
+  series: {
+    id: "reinforcement-learning",
+    order: 3,
+  },
 }
 
 In the previous post, we looked at policy gradient methods. The basic idea there was to parameterize the policy directly as $\pi_\theta(a \mid s)$, and then update $\theta$ so that the expected return increases.

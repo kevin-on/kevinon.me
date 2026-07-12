@@ -190,7 +190,7 @@ export default function TableOfContents() {
                   item.level === 3 ? "pl-4" : ""
                 } ${
                   isActive
-                    ? "text-brand before:absolute before:-left-4 before:top-2 before:h-4 before:w-0.5 before:rounded-full before:bg-brand before:content-['']"
+                    ? "text-brand before:absolute before:-left-4 before:top-2 before:h-4 before:w-0.5 before:rounded-full before:bg-brand before:content-[''] dark:text-brand-2 dark:before:bg-brand-2"
                     : "text-foreground-3 hover:text-foreground-2"
                 }`}
                 onClick={() => setActiveId(item.id)}

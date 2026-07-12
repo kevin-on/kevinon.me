@@ -4,6 +4,7 @@ import { getChessData } from "@/lib/chess"
 import { getPosts } from "@/lib/posts"
 import CopyEmail from "@/app/components/CopyEmail"
 import ThemeToggle from "@/app/components/ThemeToggle"
+import { getDisplayTitle, getSeriesDefinition } from "@/lib/series"
 
 function formatChange(change: number): string {
   if (change > 0) return `+${change}`
@@ -103,27 +104,38 @@ export default async function BlogPage() {
       {/* Posts Section */}
       <h2 className="text-xl font-bold mb-6">Posts</h2>
       <ul className="space-y-6">
-        {posts.map((post) => (
-          <li key={post.slug}>
-            <Link href={`/blog/${post.slug}`} className="block group">
-              <h3 className="text-lg font-medium group-hover:text-brand">
-                {post.metadata.title}
-                <span className="font-normal text-sm text-foreground-3 ml-4">
-                  {new Date(post.metadata.date).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-              </h3>
-              {post.metadata.description && (
-                <p className="text-foreground-2 mt-1">
-                  {post.metadata.description}
-                </p>
-              )}
-            </Link>
-          </li>
-        ))}
+        {posts.map((post) => {
+          const series = post.metadata.series
+            ? getSeriesDefinition(post.metadata.series.id)
+            : undefined
+
+          return (
+            <li key={post.slug}>
+              <Link href={`/blog/${post.slug}`} className="block group">
+                {series && (
+                  <p className="mb-1 text-sm font-normal text-foreground-3">
+                    {series.title} series
+                  </p>
+                )}
+                <h3 className="text-lg font-medium group-hover:text-brand">
+                  {getDisplayTitle(post)}
+                  <span className="font-normal text-sm text-foreground-3 ml-4">
+                    {new Date(post.metadata.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </h3>
+                {post.metadata.description && (
+                  <p className="text-foreground-2 mt-1">
+                    {post.metadata.description}
+                  </p>
+                )}
+              </Link>
+            </li>
+          )
+        })}
       </ul>
     </main>
   )

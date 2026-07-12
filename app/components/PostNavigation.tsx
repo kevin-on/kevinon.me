@@ -4,12 +4,18 @@ import type { Post } from "@/lib/types"
 type PostNavigationProps = {
   previousPost?: Post
   nextPost?: Post
+  scope?: "posts" | "series"
 }
 
 export default function PostNavigation({
   previousPost,
   nextPost,
+  scope = "posts",
 }: PostNavigationProps) {
+  const previousLabel =
+    scope === "series" ? "PREVIOUS IN SERIES" : "PREVIOUS POST"
+  const nextLabel = scope === "series" ? "NEXT IN SERIES" : "NEXT POST"
+
   return (
     <footer className="mt-16 border-t border-divider pt-6">
       <nav aria-label="Post navigation">
@@ -21,7 +27,7 @@ export default function PostNavigation({
               className="group block min-w-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:col-start-1"
             >
               <span className="block text-xs font-medium tracking-[0.08em] text-foreground-2">
-                PREVIOUS POST
+                {previousLabel}
               </span>
               <span className="mt-1.5 block break-words text-base leading-snug text-foreground transition-colors group-hover:text-brand group-focus-visible:text-brand dark:group-hover:text-brand-2 dark:group-focus-visible:text-brand-2">
                 <span
@@ -42,7 +48,7 @@ export default function PostNavigation({
               className="group block min-w-0 rounded-sm text-right focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:col-start-2"
             >
               <span className="block text-xs font-medium tracking-[0.08em] text-foreground-2">
-                NEXT POST
+                {nextLabel}
               </span>
               <span className="mt-1.5 block break-words text-base leading-snug text-foreground transition-colors group-hover:text-brand group-focus-visible:text-brand dark:group-hover:text-brand-2 dark:group-focus-visible:text-brand-2">
                 {nextPost.metadata.title}{" "}

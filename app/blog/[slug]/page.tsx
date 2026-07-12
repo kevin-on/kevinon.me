@@ -1,74 +1,80 @@
-import fs from "fs"
-import path from "path"
 import Link from "next/link"
+import { notFound } from "next/navigation"
+import PostNavigation from "@/app/components/PostNavigation"
+import TableOfContents from "@/app/components/TableOfContents"
 import ThemeToggle from "@/app/components/ThemeToggle"
-import type { PostMetadata } from "@/lib/types"
+import { getPosts } from "@/lib/posts"
 
 type Params = {
   params: Promise<{ slug: string }>
 }
 
 export async function generateStaticParams() {
-  const contentDir = path.join(process.cwd(), "content")
-  const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"))
-  const isProduction = process.env.NODE_ENV === "production"
+  const posts = await getPosts()
 
-  const params = await Promise.all(
-    files.map(async (file) => {
-      const slug = file.replace(".mdx", "")
-      const { metadata }: { metadata: PostMetadata } = await import(
-        `@/content/${slug}.mdx`
-      )
-      return { slug, draft: metadata.draft }
-    })
-  )
-
-  return params
-    .filter((p) => !isProduction || !p.draft)
-    .map(({ slug }) => ({ slug }))
+  return posts.map(({ slug }) => ({ slug }))
 }
 
 export async function generateMetadata({ params }: Params) {
   const { slug } = await params
-  const { metadata }: { metadata: PostMetadata } = await import(
-    `@/content/${slug}.mdx`
-  )
+  const posts = await getPosts()
+  const post = posts.find((candidate) => candidate.slug === slug)
+
+  if (!post) notFound()
 
   return {
-    title: metadata.title,
-    description: metadata.description,
+    title: post.metadata.title,
+    description: post.metadata.description,
   }
 }
 
 export default async function BlogPostPage({ params }: Params) {
   const { slug } = await params
-  const {
-    default: Post,
-    metadata,
-  }: { default: React.ComponentType; metadata: PostMetadata } = await import(
+  const posts = await getPosts()
+  const currentPostIndex = posts.findIndex((post) => post.slug === slug)
+
+  if (currentPostIndex === -1) notFound()
+
+  const { default: Post }: { default: React.ComponentType } = await import(
     `@/content/${slug}.mdx`
   )
+  const metadata = posts[currentPostIndex].metadata
+  const previousPost = posts[currentPostIndex + 1]
+  const nextPost =
+    currentPostIndex > 0 ? posts[currentPostIndex - 1] : undefined
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-12">
-      <div className="flex items-center justify-between gap-4">
-        <Link
-          href="/blog"
-          className="text-sm text-foreground-3 hover:text-brand"
-        >
-          ← Back to blog
-        </Link>
-        <ThemeToggle />
-      </div>
-      <article className="mt-6">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold">{metadata.title}</h1>
-          <p className="text-sm text-foreground-3 mt-2">{metadata.date}</p>
-        </header>
-        <div className="prose max-w-none prose-neutral dark:prose-invert">
-          <Post />
+    <main className="mx-auto grid w-full max-w-7xl grid-cols-1 px-4 py-12 xl:grid-cols-[minmax(0,1fr)_minmax(0,46rem)_15rem] xl:gap-x-16">
+      <div className="w-full max-w-[46rem] justify-self-center xl:col-start-2">
+        <div className="flex items-center justify-between gap-4">
+          <Link
+            href="/blog"
+            className="text-sm text-foreground-3 hover:text-brand"
+          >
+            ← Back to blog
+          </Link>
+          <ThemeToggle />
         </div>
-      </article>
+        <article className="mt-6">
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold">{metadata.title}</h1>
+            <p className="text-sm text-foreground-3 mt-2">{metadata.date}</p>
+          </header>
+          <div
+            data-post-content
+            className="prose max-w-none prose-neutral dark:prose-invert"
+          >
+            <Post />
+          </div>
+          <PostNavigation
+            previousPost={previousPost}
+            nextPost={nextPost}
+          />
+        </article>
+      </div>
+      <aside className="hidden min-w-0 xl:col-start-3 xl:row-start-1 xl:block">
+        <TableOfContents key={slug} />
+      </aside>
     </main>
   )
 }

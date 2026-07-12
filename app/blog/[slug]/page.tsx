@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import Comments from "@/app/components/Comments"
 import PostNavigation from "@/app/components/PostNavigation"
 import TableOfContents from "@/app/components/TableOfContents"
 import ThemeToggle from "@/app/components/ThemeToggle"
@@ -71,6 +72,7 @@ export default async function BlogPostPage({ params }: Params) {
             nextPost={nextPost}
           />
         </article>
+        <Comments key={slug} />
       </div>
       <aside className="hidden min-w-0 xl:col-start-3 xl:row-start-1 xl:block">
         <TableOfContents key={slug} />

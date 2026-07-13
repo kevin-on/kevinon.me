@@ -333,6 +333,15 @@ h6 {
 }
 
 .prose
+  :where(.katex-display):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ) {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.prose
   :where(pre, .prose-table-scroll):not(
     :where([class~="not-prose"], [class~="not-prose"] *)
   ):focus-visible {
@@ -489,6 +498,22 @@ h6 {
   ) {
   margin-top: 0;
   margin-bottom: 0;
+}
+
+.prose
+  :where(iframe):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ) {
+  display: block;
+  width: min(100%, 35rem);
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+@media (max-width: 47.999rem) {
+  .prose > div:has(> figure + figure) {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .prose

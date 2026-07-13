@@ -14,12 +14,12 @@ export default function CopyEmail({ email }: { email: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="group text-foreground-3 hover:text-brand cursor-pointer transition-colors inline-flex items-center gap-1"
+      className="group inline-flex cursor-pointer items-center gap-1 text-foreground-subtle transition-colors hover:text-accent"
     >
       {email}
       {copied ? (
         <svg
-          className="w-4 h-4 text-green-500"
+          className="h-4 w-4 text-positive"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

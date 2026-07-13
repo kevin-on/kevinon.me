@@ -58,7 +58,7 @@ export default async function BlogPostPage({ params }: Params) {
         <div className="flex items-center justify-between gap-4">
           <Link
             href="/blog"
-            className="text-sm text-foreground-3 hover:text-brand"
+            className="text-sm text-foreground-subtle hover:text-accent"
           >
             ← Back to blog
           </Link>
@@ -67,14 +67,16 @@ export default async function BlogPostPage({ params }: Params) {
         <article className="mt-6">
           <header className="mb-8">
             {seriesContext && (
-              <p className="mb-1 text-sm font-normal text-foreground-3">
+              <p className="mb-1 text-sm font-normal text-foreground-subtle">
                 {seriesContext.definition.title} series
               </p>
             )}
             <h1 className="text-3xl font-bold">
               {getDisplayTitle(currentPost)}
             </h1>
-            <p className="text-sm text-foreground-3 mt-2">{metadata.date}</p>
+            <p className="mt-2 text-sm text-foreground-subtle">
+              {metadata.date}
+            </p>
           </header>
           {seriesContext && (
             <SeriesNavigation

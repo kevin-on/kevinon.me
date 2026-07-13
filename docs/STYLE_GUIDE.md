@@ -1,144 +1,98 @@
 # Style Guide
 
-This style guide documents the design tokens and conventions used in this website. The light palette uses the warm Modern Paper theme, while the dark palette retains its VitePress-inspired colors. The system is implemented with Tailwind CSS v4.
+This guide documents the semantic design tokens used by the site. Colors are defined once in `app/globals.css` with `light-dark()`, exposed to Tailwind CSS v4, and selected by `color-scheme`.
 
-All tokens are defined in `app/globals.css`. The initial theme follows `prefers-color-scheme`, while the theme toggle can explicitly select light or dark mode.
+Use role-based tokens instead of palette utilities such as `text-gray-500`, `text-green-600`, or `text-red-500`. A component should not need a `dark:` color override.
+
+The `docs` directory is excluded from Tailwind source detection, so class names in documentation examples do not generate production utilities.
 
 ---
 
 ## Color Tokens
 
-### Text Colors
+### Text
 
-Use semantic text colors instead of hardcoded values like `text-gray-500`.
+| Tailwind class | CSS variable | Usage |
+| --- | --- | --- |
+| `text-foreground` | `--color-foreground` | Headings, body copy, and primary UI text |
+| `text-foreground-muted` | `--color-foreground-muted` | Descriptions, secondary labels, and inactive navigation |
+| `text-foreground-subtle` | `--color-foreground-subtle` | Dates, captions, eyebrows, and low-emphasis metadata |
 
-| Tailwind Class | CSS Variable | Usage |
-|----------------|--------------|-------|
-| `text-foreground` | `--color-foreground` | Primary text (headings, body copy) |
-| `text-foreground-2` | `--color-foreground-2` | Secondary text (descriptions, paragraphs) |
-| `text-foreground-3` | `--color-foreground-3` | Tertiary text (dates, captions, muted labels) |
+| Token | Light | Dark |
+| --- | --- | --- |
+| `foreground` | `#27241f` | `rgba(255, 255, 245, 0.86)` |
+| `foreground-muted` | `rgba(39, 36, 31, 0.76)` | `rgba(235, 235, 245, 0.60)` |
+| `foreground-subtle` | `rgba(39, 36, 31, 0.65)` | `rgba(235, 235, 245, 0.52)` |
 
-**Light Mode Values:**
-- `foreground`: `#27241f` — warm near black
-- `foreground-2`: `rgba(39, 36, 31, 0.76)` — 76% opacity
-- `foreground-3`: `rgba(39, 36, 31, 0.55)` — 55% opacity
+All three text levels meet WCAG AA contrast for normal text on the site's current background surfaces. Prefer the strongest level that matches the information hierarchy; do not reduce opacity locally to create another text tier.
 
-**Dark Mode Values:**
-- `foreground`: `rgba(255, 255, 245, 0.86)` — warm white
-- `foreground-2`: `rgba(235, 235, 245, 0.6)` — 60% opacity
-- `foreground-3`: `rgba(235, 235, 245, 0.38)` — 38% opacity
-
-**Examples:**
 ```tsx
-<h1 className="text-foreground">Main Heading</h1>
-<p className="text-foreground-2">Description paragraph</p>
-<span className="text-foreground-3">Published on Jan 1, 2025</span>
+<h1 className="text-foreground">Main heading</h1>
+<p className="text-foreground-muted">Description</p>
+<span className="text-foreground-subtle">July 13, 2026</span>
 ```
 
----
+### Accent
 
-### Brand Colors
+Use `accent` for links, the current location, selected controls, focus outlines, and interactive emphasis.
 
-Use brand colors for interactive elements like links and buttons.
+| Tailwind class | Usage |
+| --- | --- |
+| `text-accent` | Links, active text, and selected icons |
+| `bg-accent` | Compact selected controls such as checkboxes |
+| `outline-accent` | Keyboard focus rings |
 
-| Tailwind Class | CSS Variable | Usage |
-|----------------|--------------|-------|
-| `text-brand` | `--color-brand` | Primary brand color (links, active states) |
-| `text-brand-2` | `--color-brand-2` | Hover state for brand elements |
-| `text-brand-3` | `--color-brand-3` | Pressed/active state |
-| `bg-brand-soft` | `--color-brand-soft` | Soft background highlight |
+| Mode | Value | Contrast on page background |
+| --- | --- | --- |
+| Light | `#205ea6` | `6.33:1` |
+| Dark | `#747bff` | `4.92:1` |
 
-**Light Mode Values:**
-- `brand`: `#205ea6` — ink blue
-- `brand-2`: `#4385be` — lighter blue (hover)
-- `brand-3`: `#163b66` — darker blue (active)
-- `brand-soft`: `rgba(32, 94, 166, 0.12)` — subtle highlight
+The accent itself does not change shade on hover or focus. Express interaction with underline, background, movement, or another non-color cue. This keeps the text contrast stable and avoids component-level `dark:` shade selection.
 
-**Dark Mode Values:**
-- `brand`: `#646cff` — purple-blue
-- `brand-2`: `#747bff` — lighter purple-blue (hover)
-- `brand-3`: `#535bf2` — darker purple-blue (active)
-- `brand-soft`: `rgba(100, 108, 255, 0.16)` — subtle highlight
-
-**Examples:**
 ```tsx
-// Link with hover effect
-<a className="text-foreground-3 hover:text-brand">GitHub</a>
-
-// Interactive heading
-<h3 className="group-hover:text-brand">Post Title</h3>
-
-// Highlighted badge
-<span className="bg-brand-soft text-brand px-2 py-1 rounded">New</span>
+<a className="text-foreground-subtle hover:text-accent">GitHub</a>
+<a className="focus-visible:outline-2 focus-visible:outline-accent">Post</a>
 ```
 
----
+### Backgrounds and Dividers
 
-### Background Colors
+| Tailwind class | CSS variable | Usage |
+| --- | --- | --- |
+| `bg-background` | `--color-background` | Main page canvas |
+| `bg-background-elevated` | `--color-background-elevated` | Menus, popovers, and elevated controls |
+| `bg-background-soft` | `--color-background-soft` | Code blocks and subtle hover surfaces |
+| `border-divider` | `--color-divider` | Separators, table rules, and quiet component borders |
 
-| Tailwind Class | CSS Variable | Usage |
-|----------------|--------------|-------|
-| `bg-background` | `--color-background` | Main page background |
-| `bg-background-alt` | `--color-background-alt` | Alternate sections, sidebar |
-| `bg-background-elv` | `--color-background-elv` | Elevated surfaces (modals, dropdowns, tooltips) |
-| `bg-background-soft` | `--color-background-soft` | Subtle highlights, code blocks |
+| Token | Light | Dark |
+| --- | --- | --- |
+| `background` | `#fefbf5` | `#1b1b1f` |
+| `background-elevated` | `#fffefb` | `#202127` |
+| `background-soft` | `#f5efe5` | `#202127` |
+| `divider` | `#e5dcce` | `rgba(82, 82, 89, 0.32)` |
 
-**Light Mode Values:**
-- `background`: `#fefbf5`
-- `background-alt`: `#f8f3ea`
-- `background-elv`: `#fffefb`
-- `background-soft`: `#f5efe5`
+`divider` is intentionally quiet. Do not use it as the only visual boundary for a control whose shape must be perceivable.
 
-**Dark Mode Values:**
-- `background`: `#1b1b1f`
-- `background-alt`: `#161618`
-- `background-elv`: `#202127`
-- `background-soft`: `#202127`
+### Status and Content Accents
 
-**Examples:**
-```tsx
-// Alternate background section
-<section className="bg-background-alt py-8">...</section>
+| Tailwind class / variable | Light | Dark | Usage |
+| --- | --- | --- | --- |
+| `text-positive` | `#16794b` | `#5fca8c` | Success feedback and positive deltas |
+| `text-negative` | `#b42318` | `#ff7b72` | Negative deltas and error-like feedback |
+| `--color-math-accent` | `rgb(155 63 91)` | `rgb(242 154 179)` | Highlighted terms inside rendered equations |
 
-// Modal/dropdown
-<div className="bg-background-elv shadow-lg rounded-lg">...</div>
-
-// Code block background
-<pre className="bg-background-soft p-4 rounded">...</pre>
-```
-
----
-
-### Divider Color
-
-| Tailwind Class | CSS Variable | Usage |
-|----------------|--------------|-------|
-| `border-divider` | `--color-divider` | Borders, separators, horizontal rules |
-
-**Examples:**
-```tsx
-<div className="border-b border-divider pb-4">...</div>
-<hr className="border-divider" />
-```
+These are semantic roles, not general-purpose green, red, or pink palette entries. Do not use `positive` and `negative` as the sole way to communicate a state; retain text or icon cues such as `+`, `−`, or a checkmark.
 
 ---
 
 ## Typography
 
-### Font Families
-
-| Tailwind Class | Font | Usage |
-|----------------|------|-------|
-| `font-sans` | IBM Plex Sans | Body text and default UI text |
+| Tailwind class | Font | Usage |
+| --- | --- | --- |
+| `font-sans` | IBM Plex Sans | Body and UI text |
 | `font-display` | PP Neue Montreal | Headings and display text |
-| `font-mono` | Fira Code | Code, technical content |
+| `font-mono` | Fira Code | Code and technical content |
 
-The body uses `font-sans` by default (set in `globals.css`). Headings use `font-display`, and markdown article content keeps the sans-serif base with a wider line-height for readability.
-
-**Example:**
-```tsx
-<code className="font-mono text-sm">const x = 1</code>
-```
+The body uses `font-sans` by default. Headings use `font-display`, and markdown content uses the sans-serif base with a wider line height.
 
 ---
 
@@ -146,43 +100,39 @@ The body uses `font-sans` by default (set in `globals.css`). Headings use `font-
 
 ### Links
 
-Standard link pattern with muted default and brand hover:
-
 ```tsx
-<a className="text-foreground-3 hover:text-brand">Link Text</a>
+<a className="text-foreground-subtle transition-colors hover:text-accent">
+  Link text
+</a>
 ```
 
-### Interactive Cards/List Items
+Prose links are accent-colored and underlined by default. Hover keeps the
+underline while reinforcing the same accessible accent color.
 
-Use group hover for parent-child hover effects:
+### Interactive Cards
 
 ```tsx
-<Link href="/post" className="block group">
-  <h3 className="text-foreground group-hover:text-brand">Title</h3>
-  <p className="text-foreground-2">Description</p>
-  <span className="text-foreground-3">Date</span>
+<Link href="/post" className="group block">
+  <h3 className="text-foreground group-hover:text-accent">Title</h3>
+  <p className="text-foreground-muted">Description</p>
+  <span className="text-foreground-subtle">Date</span>
 </Link>
 ```
 
-### Metadata/Captions
-
-Use `text-foreground-3` with `text-sm`:
+### Surfaces
 
 ```tsx
-<p className="text-sm text-foreground-3">January 1, 2025</p>
-```
-
-### Section Headers
-
-```tsx
-<h2 className="text-xl font-bold text-foreground">Section Title</h2>
+<div className="border border-divider bg-background-elevated shadow-lg">
+  Popover
+</div>
+<pre className="bg-background-soft">Code</pre>
 ```
 
 ---
 
-## Prose/Article Content
+## Prose and MDX
 
-For markdown/MDX content, use the Tailwind Typography plugin:
+Use the Tailwind Typography plugin for article content:
 
 ```tsx
 <div className="prose prose-neutral dark:prose-invert">
@@ -190,31 +140,7 @@ For markdown/MDX content, use the Tailwind Typography plugin:
 </div>
 ```
 
-The prose styles inherit VitePress colors via CSS variable overrides in `globals.css`.
-
----
-
-## Quick Reference
-
-### Do ✅
-
-```tsx
-// Use semantic color tokens
-<p className="text-foreground-2">Description</p>
-<a className="text-foreground-3 hover:text-brand">Link</a>
-<div className="bg-background-soft">Highlighted area</div>
-<div className="border-b border-divider">Separated section</div>
-```
-
-### Don't ❌
-
-```tsx
-// Avoid hardcoded gray values
-<p className="text-gray-600">Description</p>
-<a className="text-gray-500 hover:text-blue-500">Link</a>
-<div className="bg-gray-100">Highlighted area</div>
-<div className="border-b border-gray-200">Separated section</div>
-```
+`app/globals.css` maps all Typography plugin colors to the semantic tokens. The KaTeX `\accent{}` macro resolves through `--color-math-accent` instead of embedding theme-specific colors in the renderer.
 
 ---
 
@@ -222,21 +148,19 @@ The prose styles inherit VitePress colors via CSS variable overrides in `globals
 
 The theme toggle offers `System`, `Light`, and `Dark`:
 
-- `System` is the default and follows `prefers-color-scheme`.
-- Explicit `Light` or `Dark` choices are stored under `theme-preference` in `localStorage`.
-- `data-theme` on `<html>` contains the effective theme; `data-theme-choice` contains the user's selection.
-- The initialization script in `app/layout.tsx` applies the theme before hydration to prevent a flash of the wrong palette.
+- `System` follows `prefers-color-scheme`.
+- Explicit choices are stored under `theme-preference` in `localStorage`.
+- `data-theme` on `<html>` contains the effective theme.
+- `data-theme-choice` contains the user's selected preference.
+- The initialization script in `app/layout.tsx` applies the theme before hydration.
 
-Tailwind's `dark` variant follows the effective `data-theme` value:
-
-```tsx
-<div className="bg-background dark:bg-background-alt">...</div>
-```
+Components use the same semantic color class in both themes. Reserve Tailwind's `dark:` variant for genuine layout or non-token differences, not for choosing another palette shade.
 
 ---
 
 ## File Reference
 
-- **`app/globals.css`** — All CSS variables and Tailwind theme tokens
-- **`app/components/ThemeToggle.tsx`** — Theme menu and persisted user preference
-- **`app/layout.tsx`** — Font loading (PP Neue Montreal, IBM Plex Sans, Fira Code)
+- `app/globals.css` — Semantic color foundations, Tailwind aliases, and prose mappings
+- `app/components/ThemeToggle.tsx` — Theme menu and persisted preference
+- `app/layout.tsx` — Theme initialization and font loading
+- `mdx-components.tsx` — KaTeX integration and the math accent macro

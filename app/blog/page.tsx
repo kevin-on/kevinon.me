@@ -31,7 +31,7 @@ export default async function BlogPage() {
         />
         <div className="col-start-2 row-start-2 sm:row-start-1 min-w-0">
           <h1 className="text-2xl font-bold">Kevin On</h1>
-          <p className="text-foreground-2 mt-1">
+          <p className="mt-1 text-foreground-muted">
             Mostly interested in robotics. Also into AI products, chess, and
             soccer.
           </p>
@@ -40,19 +40,19 @@ export default async function BlogPage() {
               href="https://github.com/kevin-on"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground-3 hover:text-brand"
+              className="text-foreground-subtle hover:text-accent"
             >
               GitHub
             </a>
             <CopyEmail email="kwanghyun.on@gmail.com" />
           </div>
           {(chessData.rapid || chessData.blitz) && (
-            <div className="flex gap-4 mt-3 text-sm text-foreground-3">
+            <div className="mt-3 flex gap-4 text-sm text-foreground-subtle">
               <a
                 href="https://www.chess.com/member/kevin_on"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-wrap items-center gap-1 hover:text-brand"
+                className="flex flex-wrap items-center gap-1 hover:text-accent"
               >
                 <Image
                   src="/chesscom-icon-filled-256.png"
@@ -68,9 +68,9 @@ export default async function BlogPage() {
                     <span
                       className={
                         chessData.rapid.change > 0
-                          ? "text-green-600"
+                          ? "text-positive"
                           : chessData.rapid.change < 0
-                          ? "text-red-500"
+                          ? "text-negative"
                           : ""
                       }
                     >
@@ -85,9 +85,9 @@ export default async function BlogPage() {
                     <span
                       className={
                         chessData.blitz.change > 0
-                          ? "text-green-600"
+                          ? "text-positive"
                           : chessData.blitz.change < 0
-                          ? "text-red-500"
+                          ? "text-negative"
                           : ""
                       }
                     >
@@ -113,13 +113,13 @@ export default async function BlogPage() {
             <li key={post.slug}>
               <Link href={`/blog/${post.slug}`} className="block group">
                 {series && (
-                  <p className="mb-1 text-sm font-normal text-foreground-3">
+                  <p className="mb-1 text-sm font-normal text-foreground-subtle">
                     {series.title} series
                   </p>
                 )}
-                <h3 className="text-lg font-medium group-hover:text-brand">
+                <h3 className="text-lg font-medium group-hover:text-accent">
                   {getDisplayTitle(post)}
-                  <span className="font-normal text-sm text-foreground-3 ml-4">
+                  <span className="ml-4 text-sm font-normal text-foreground-subtle">
                     {new Date(post.metadata.date).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -128,7 +128,7 @@ export default async function BlogPage() {
                   </span>
                 </h3>
                 {post.metadata.description && (
-                  <p className="text-foreground-2 mt-1">
+                  <p className="mt-1 text-foreground-muted">
                     {post.metadata.description}
                   </p>
                 )}

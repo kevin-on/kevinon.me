@@ -36,14 +36,14 @@ export default function SeriesNavigation({
             >
               <span
                 aria-hidden="true"
-                className="w-6 shrink-0 text-foreground-3"
+                className="w-6 shrink-0 text-foreground-subtle"
               >
                 {formatSeriesOrder(order)}.
               </span>
               {isCurrent ? (
                 <span
                   aria-current="page"
-                  className="font-medium text-brand dark:text-brand-2"
+                  className="font-medium text-accent"
                 >
                   <span className="sr-only">Part {order}: </span>
                   {post.metadata.title}
@@ -51,7 +51,7 @@ export default function SeriesNavigation({
               ) : (
                 <Link
                   href={`/blog/${post.slug}`}
-                  className="rounded-sm text-foreground-2 transition-colors hover:text-brand focus-visible:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:hover:text-brand-2 dark:focus-visible:text-brand-2"
+                  className="rounded-sm text-foreground-muted transition-colors hover:text-accent focus-visible:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <span className="sr-only">Part {order}: </span>
                   {post.metadata.title}

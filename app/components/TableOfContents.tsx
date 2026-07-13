@@ -186,12 +186,12 @@ export default function TableOfContents() {
               <a
                 href={`#${item.id}`}
                 aria-current={isActive ? "location" : undefined}
-                className={`relative block overflow-hidden text-ellipsis whitespace-nowrap pr-2 leading-8 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand ${
+                className={`relative block overflow-hidden text-ellipsis whitespace-nowrap pr-2 leading-8 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${
                   item.level === 3 ? "pl-4" : ""
                 } ${
                   isActive
-                    ? "text-brand before:absolute before:-left-4 before:top-2 before:h-4 before:w-0.5 before:rounded-full before:bg-brand before:content-[''] dark:text-brand-2 dark:before:bg-brand-2"
-                    : "text-foreground-3 hover:text-foreground-2"
+                    ? "text-accent before:absolute before:-left-4 before:top-2 before:h-4 before:w-0.5 before:rounded-full before:bg-accent before:content-['']"
+                    : "text-foreground-subtle hover:text-foreground-muted"
                 }`}
                 onClick={() => setActiveId(item.id)}
               >

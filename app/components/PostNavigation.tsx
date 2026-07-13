@@ -24,12 +24,12 @@ export default function PostNavigation({
             <Link
               href={`/blog/${previousPost.slug}`}
               rel="prev"
-              className="group block min-w-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:col-start-1"
+              className="group block min-w-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:col-start-1"
             >
-              <span className="block text-xs font-medium tracking-[0.08em] text-foreground-2">
+              <span className="block text-xs font-medium tracking-[0.08em] text-foreground-muted">
                 {previousLabel}
               </span>
-              <span className="mt-1.5 block break-words text-base leading-snug text-foreground transition-colors group-hover:text-brand group-focus-visible:text-brand dark:group-hover:text-brand-2 dark:group-focus-visible:text-brand-2">
+              <span className="mt-1.5 block break-words text-base leading-snug text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent">
                 <span
                   aria-hidden="true"
                   className="inline-block transition-transform group-hover:-translate-x-0.5 motion-reduce:transform-none"
@@ -45,12 +45,12 @@ export default function PostNavigation({
             <Link
               href={`/blog/${nextPost.slug}`}
               rel="next"
-              className="group block min-w-0 rounded-sm text-right focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:col-start-2"
+              className="group block min-w-0 rounded-sm text-right focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:col-start-2"
             >
-              <span className="block text-xs font-medium tracking-[0.08em] text-foreground-2">
+              <span className="block text-xs font-medium tracking-[0.08em] text-foreground-muted">
                 {nextLabel}
               </span>
-              <span className="mt-1.5 block break-words text-base leading-snug text-foreground transition-colors group-hover:text-brand group-focus-visible:text-brand dark:group-hover:text-brand-2 dark:group-focus-visible:text-brand-2">
+              <span className="mt-1.5 block break-words text-base leading-snug text-foreground transition-colors group-hover:text-accent group-focus-visible:text-accent">
                 {nextPost.metadata.title}{" "}
                 <span
                   aria-hidden="true"
@@ -66,7 +66,7 @@ export default function PostNavigation({
         <div className="mt-6 text-center">
           <Link
             href="/blog"
-            className="inline-flex items-center gap-1.5 rounded-sm px-2 py-2 text-xs font-medium tracking-[0.08em] text-foreground-2 transition-colors hover:text-brand focus-visible:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:hover:text-brand-2 dark:focus-visible:text-brand-2"
+            className="inline-flex items-center gap-1.5 rounded-sm px-2 py-2 text-xs font-medium tracking-[0.08em] text-foreground-muted transition-colors hover:text-accent focus-visible:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <svg
               aria-hidden="true"

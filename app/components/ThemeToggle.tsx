@@ -182,7 +182,7 @@ export default function ThemeToggle() {
         aria-controls={popoverId}
         aria-expanded={isOpen}
         aria-label="Theme settings"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-divider bg-background-elv text-foreground-2 transition-colors hover:bg-background-soft hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-divider bg-background-elevated text-foreground-muted transition-colors hover:bg-background-soft hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         onClick={() => setIsOpen((open) => !open)}
       >
         <span className="theme-icon-sun">
@@ -196,9 +196,9 @@ export default function ThemeToggle() {
       {isOpen && (
         <div
           id={popoverId}
-          className="absolute right-0 top-full z-50 mt-2 w-40 rounded-xl border border-divider bg-background-elv p-1.5 text-foreground shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 w-40 rounded-xl border border-divider bg-background-elevated p-1.5 text-foreground shadow-lg"
         >
-          <p className="px-2 py-1 text-xs font-medium text-foreground-3">
+          <p className="px-2 py-1 text-xs font-medium text-foreground-subtle">
             Theme
           </p>
           <div role="group" aria-label="Theme">
@@ -210,13 +210,13 @@ export default function ThemeToggle() {
                   key={value}
                   type="button"
                   aria-pressed={selected}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-foreground-2 transition-colors hover:bg-background-soft hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-foreground-muted transition-colors hover:bg-background-soft hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
                   onClick={() => selectTheme(value)}
                 >
                   <Icon className="h-4 w-4" />
                   <span>{label}</span>
                   <CheckIcon
-                    className={`ml-auto h-4 w-4 text-brand ${
+                    className={`ml-auto h-4 w-4 text-accent ${
                       selected ? "opacity-100" : "opacity-0"
                     }`}
                   />

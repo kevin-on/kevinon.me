@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import Comments from "@/app/components/Comments"
 import PostNavigation from "@/app/components/PostNavigation"
 import SeriesNavigation from "@/app/components/SeriesNavigation"
 import TableOfContents from "@/app/components/TableOfContents"
@@ -97,6 +98,7 @@ export default async function BlogPostPage({ params }: Params) {
             scope={seriesContext ? "series" : "posts"}
           />
         </article>
+        <Comments key={slug} />
       </div>
       <aside className="hidden min-w-0 xl:col-start-3 xl:row-start-1 xl:block">
         <TableOfContents key={slug} />

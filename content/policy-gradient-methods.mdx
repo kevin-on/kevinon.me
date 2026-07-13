@@ -3,6 +3,10 @@ export const metadata = {
   date: "2026-07-10",
   description:
     "From REINFORCE to actor-critic, GAE, TRPO, and PPO.",
+  series: {
+    id: "reinforcement-learning",
+    order: 2,
+  },
 }
 
 In the previous post, we set up the reinforcement learning problem and looked at value functions and Bellman equations. These let us describe how good a given policy is. But we have not yet seen how to actually find a good policy.
@@ -1299,29 +1303,29 @@ Proof:
 
 $$
 \begin{aligned}
-J(\theta)-J(\theta_0)
+J(\theta)-J(\accent{\theta_0})
 &=
 J(\theta)
 -
 \mathbb{E}_{s_0 \sim p_0}
 \left[
-V^{\pi_{\theta_0}}(s_0)
+V^{\pi_{\accent{\theta_0}}}(s_0)
 \right] \\
 &=
 J(\theta)
 -
 \mathbb{E}_{\tau \sim p_\theta(\tau)}
 \left[
-V^{\pi_{\theta_0}}(s_0)
+V^{\pi_{\accent{\theta_0}}}(s_0)
 \right] \\
 &=
 J(\theta)
 -
 \mathbb{E}_{\tau \sim p_\theta(\tau)}
 \left[
-\sum_{t=0}^{T-1}\gamma^t V^{\pi_{\theta_0}}(s_t)
+\sum_{t=0}^{T-1}\gamma^t V^{\pi_{\accent{\theta_0}}}(s_t)
 -
-\sum_{t=1}^{T}\gamma^t V^{\pi_{\theta_0}}(s_t)
+\sum_{t=1}^{T}\gamma^t V^{\pi_{\accent{\theta_0}}}(s_t)
 \right] \\
 &=
 J(\theta)
@@ -1331,9 +1335,9 @@ J(\theta)
 \sum_{t=0}^{T-1}
 \gamma^t
 \left(
-\gamma V^{\pi_{\theta_0}}(s_{t+1})
+\gamma V^{\pi_{\accent{\theta_0}}}(s_{t+1})
 -
-V^{\pi_{\theta_0}}(s_t)
+V^{\pi_{\accent{\theta_0}}}(s_t)
 \right)
 \right] \\
 &=
@@ -1348,9 +1352,9 @@ V^{\pi_{\theta_0}}(s_t)
 \sum_{t=0}^{T-1}
 \gamma^t
 \left(
-\gamma V^{\pi_{\theta_0}}(s_{t+1})
+\gamma V^{\pi_{\accent{\theta_0}}}(s_{t+1})
 -
-V^{\pi_{\theta_0}}(s_t)
+V^{\pi_{\accent{\theta_0}}}(s_t)
 \right)
 \right] \\
 &=
@@ -1361,9 +1365,9 @@ V^{\pi_{\theta_0}}(s_t)
 \left(
 r_t
 +
-\gamma V^{\pi_{\theta_0}}(s_{t+1})
+\gamma V^{\pi_{\accent{\theta_0}}}(s_{t+1})
 -
-V^{\pi_{\theta_0}}(s_t)
+V^{\pi_{\accent{\theta_0}}}(s_t)
 \right)
 \right] \\
 &=
@@ -1372,9 +1376,9 @@ V^{\pi_{\theta_0}}(s_t)
 \sum_{t=0}^{T-1}
 \gamma^t
 \left(
-Q^{\pi_{\theta_0}}(s_t,a_t)
+Q^{\pi_{\accent{\theta_0}}}(s_t,a_t)
 -
-V^{\pi_{\theta_0}}(s_t)
+V^{\pi_{\accent{\theta_0}}}(s_t)
 \right)
 \right] \\
 &=
@@ -1382,7 +1386,7 @@ V^{\pi_{\theta_0}}(s_t)
 \left[
 \sum_{t=0}^{T-1}
 \gamma^t
-A^{\pi_{\theta_0}}(s_t,a_t)
+A^{\pi_{\accent{\theta_0}}}(s_t,a_t)
 \right].
 \end{aligned}
 $$

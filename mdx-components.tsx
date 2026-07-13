@@ -6,6 +6,8 @@ type CodeProps = ComponentPropsWithoutRef<"code">
 type PreProps = ComponentPropsWithoutRef<"pre">
 
 const mathCache = new Map<string, string>()
+const mathAccentMacro =
+  "\\htmlStyle{color:var(--color-math-accent);}{#1}"
 
 function hasClass(className: string | undefined, name: string) {
   return className?.split(/\s+/).includes(name) ?? false
@@ -41,15 +43,25 @@ function renderMath(source: string, displayMode: boolean) {
   try {
     html = katex.renderToString(source, {
       displayMode,
+      macros: {
+        "\\accent": mathAccentMacro,
+      },
       output: "htmlAndMathml",
+      strict: (errorCode) =>
+        errorCode === "htmlExtension" ? "ignore" : "warn",
       throwOnError: true,
+      trust: ({ command }) => command === "\\htmlStyle",
     })
   } catch {
     html = katex.renderToString(source, {
       displayMode,
+      macros: {
+        "\\accent": mathAccentMacro,
+      },
       output: "htmlAndMathml",
       strict: "ignore",
       throwOnError: false,
+      trust: ({ command }) => command === "\\htmlStyle",
     })
   }
 

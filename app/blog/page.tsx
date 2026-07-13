@@ -4,6 +4,7 @@ import { getChessData } from "@/lib/chess"
 import { getPosts } from "@/lib/posts"
 import CopyEmail from "@/app/components/CopyEmail"
 import ThemeToggle from "@/app/components/ThemeToggle"
+import { getDisplayTitle, getSeriesDefinition } from "@/lib/series"
 
 function formatChange(change: number): string {
   if (change > 0) return `+${change}`
@@ -30,7 +31,7 @@ export default async function BlogPage() {
         />
         <div className="col-start-2 row-start-2 sm:row-start-1 min-w-0">
           <h1 className="text-2xl font-bold">Kevin On</h1>
-          <p className="text-foreground-2 mt-1">
+          <p className="mt-1 text-foreground-muted">
             Mostly interested in robotics. Also into AI products, chess, and
             soccer.
           </p>
@@ -39,19 +40,19 @@ export default async function BlogPage() {
               href="https://github.com/kevin-on"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground-3 hover:text-brand"
+              className="text-foreground-subtle hover:text-accent"
             >
               GitHub
             </a>
             <CopyEmail email="kwanghyun.on@gmail.com" />
           </div>
           {(chessData.rapid || chessData.blitz) && (
-            <div className="flex gap-4 mt-3 text-sm text-foreground-3">
+            <div className="mt-3 flex gap-4 text-sm text-foreground-subtle">
               <a
                 href="https://www.chess.com/member/kevin_on"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-wrap items-center gap-1 hover:text-brand"
+                className="flex flex-wrap items-center gap-1 hover:text-accent"
               >
                 <Image
                   src="/chesscom-icon-filled-256.png"
@@ -67,9 +68,9 @@ export default async function BlogPage() {
                     <span
                       className={
                         chessData.rapid.change > 0
-                          ? "text-green-600"
+                          ? "text-positive"
                           : chessData.rapid.change < 0
-                          ? "text-red-500"
+                          ? "text-negative"
                           : ""
                       }
                     >
@@ -84,9 +85,9 @@ export default async function BlogPage() {
                     <span
                       className={
                         chessData.blitz.change > 0
-                          ? "text-green-600"
+                          ? "text-positive"
                           : chessData.blitz.change < 0
-                          ? "text-red-500"
+                          ? "text-negative"
                           : ""
                       }
                     >
@@ -103,27 +104,38 @@ export default async function BlogPage() {
       {/* Posts Section */}
       <h2 className="text-xl font-bold mb-6">Posts</h2>
       <ul className="space-y-6">
-        {posts.map((post) => (
-          <li key={post.slug}>
-            <Link href={`/blog/${post.slug}`} className="block group">
-              <h3 className="text-lg font-medium group-hover:text-brand">
-                {post.metadata.title}
-                <span className="font-normal text-sm text-foreground-3 ml-4">
-                  {new Date(post.metadata.date).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-              </h3>
-              {post.metadata.description && (
-                <p className="text-foreground-2 mt-1">
-                  {post.metadata.description}
-                </p>
-              )}
-            </Link>
-          </li>
-        ))}
+        {posts.map((post) => {
+          const series = post.metadata.series
+            ? getSeriesDefinition(post.metadata.series.id)
+            : undefined
+
+          return (
+            <li key={post.slug}>
+              <Link href={`/blog/${post.slug}`} className="block group">
+                {series && (
+                  <p className="mb-1 text-sm font-normal text-foreground-subtle">
+                    {series.title} series
+                  </p>
+                )}
+                <h3 className="text-lg font-medium group-hover:text-accent">
+                  {getDisplayTitle(post)}
+                  <span className="ml-4 text-sm font-normal text-foreground-subtle">
+                    {new Date(post.metadata.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </h3>
+                {post.metadata.description && (
+                  <p className="mt-1 text-foreground-muted">
+                    {post.metadata.description}
+                  </p>
+                )}
+              </Link>
+            </li>
+          )
+        })}
       </ul>
     </main>
   )

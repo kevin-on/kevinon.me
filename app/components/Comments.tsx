@@ -61,7 +61,7 @@ export default function Comments() {
       aria-labelledby="comments-heading"
       className="mt-12 border-t border-divider pt-10"
     >
-      <h2 id="comments-heading" className="text-xl font-semibold">
+      <h2 id="comments-heading" className="text-xl font-bold">
         Comments
       </h2>
       <div className="mt-5 min-h-24">

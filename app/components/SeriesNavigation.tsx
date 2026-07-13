@@ -51,7 +51,7 @@ export default function SeriesNavigation({
               ) : (
                 <Link
                   href={`/blog/${post.slug}`}
-                  className="rounded-sm text-foreground-muted transition-colors hover:text-accent focus-visible:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="rounded-sm text-foreground-muted transition-colors hover:text-accent-hover focus-visible:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <span className="sr-only">Part {order}: </span>
                   {post.metadata.title}

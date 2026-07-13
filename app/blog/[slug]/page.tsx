@@ -59,7 +59,7 @@ export default async function BlogPostPage({ params }: Params) {
         <div className="flex items-center justify-between gap-4">
           <Link
             href="/blog"
-            className="text-sm text-foreground-subtle hover:text-accent"
+            className="text-sm text-foreground-subtle transition-colors hover:text-accent-hover focus-visible:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             ← Back to blog
           </Link>
@@ -88,7 +88,7 @@ export default async function BlogPostPage({ params }: Params) {
           )}
           <div
             data-post-content
-            className="prose max-w-none prose-neutral dark:prose-invert"
+            className="prose max-w-none"
           >
             <Post />
           </div>

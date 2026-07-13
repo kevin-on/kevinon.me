@@ -72,7 +72,7 @@ main {
   --color-segmented-control-button-selected-border: rgba(82, 82, 89, 0.32);
   --color-fg-default: rgba(255, 255, 245, 0.86);
   --color-fg-muted: rgba(235, 235, 245, 0.6);
-  --color-fg-subtle: rgba(235, 235, 245, 0.38);
+  --color-fg-subtle: rgba(235, 235, 245, 0.52);
   --color-canvas-default: #1b1b1f;
   --color-canvas-overlay: #202127;
   --color-canvas-inset: #1b1b1f;

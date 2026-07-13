@@ -40,7 +40,7 @@ export default async function BlogPage() {
               href="https://github.com/kevin-on"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground-subtle hover:text-accent"
+              className="text-foreground-subtle transition-colors hover:text-accent-hover focus-visible:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               GitHub
             </a>
@@ -52,7 +52,7 @@ export default async function BlogPage() {
                 href="https://www.chess.com/member/kevin_on"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-wrap items-center gap-1 hover:text-accent"
+                className="flex flex-wrap items-center gap-1 transition-colors hover:text-accent-hover focus-visible:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <Image
                   src="/chesscom-icon-filled-256.png"
@@ -111,13 +111,16 @@ export default async function BlogPage() {
 
           return (
             <li key={post.slug}>
-              <Link href={`/blog/${post.slug}`} className="block group">
+              <Link
+                href={`/blog/${post.slug}`}
+                className="group block rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+              >
                 {series && (
                   <p className="mb-1 text-sm font-normal text-foreground-subtle">
                     {series.title} series
                   </p>
                 )}
-                <h3 className="text-lg font-medium group-hover:text-accent">
+                <h3 className="text-lg font-medium transition-colors group-hover:text-accent-hover group-focus-visible:text-accent-hover">
                   {getDisplayTitle(post)}
                   <span className="ml-4 text-sm font-normal text-foreground-subtle">
                     {new Date(post.metadata.date).toLocaleDateString("en-US", {

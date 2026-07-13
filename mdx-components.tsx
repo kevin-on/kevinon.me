@@ -4,6 +4,7 @@ import type { MDXComponents } from "mdx/types"
 
 type CodeProps = ComponentPropsWithoutRef<"code">
 type PreProps = ComponentPropsWithoutRef<"pre">
+type TableProps = ComponentPropsWithoutRef<"table">
 
 const mathCache = new Map<string, string>()
 const mathAccentMacro =
@@ -93,7 +94,7 @@ function Code({ className, children, ...props }: CodeProps) {
   )
 }
 
-function Pre({ children, ...props }: PreProps) {
+function Pre({ children, tabIndex, ...props }: PreProps) {
   if (
     isValidElement<{ className?: string }>(children) &&
     (hasClass(children.props.className, "math-display") ||
@@ -104,15 +105,29 @@ function Pre({ children, ...props }: PreProps) {
   }
 
   return (
-    <pre suppressHydrationWarning {...props}>
+    <pre suppressHydrationWarning tabIndex={tabIndex ?? 0} {...props}>
       {children}
     </pre>
+  )
+}
+
+function Table(props: TableProps) {
+  return (
+    <div
+      aria-label="Scrollable table"
+      className="prose-table-scroll"
+      role="group"
+      tabIndex={0}
+    >
+      <table {...props} />
+    </div>
   )
 }
 
 const components: MDXComponents = {
   code: Code,
   pre: Pre,
+  table: Table,
 }
 
 export function useMDXComponents(): MDXComponents {

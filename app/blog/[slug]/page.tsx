@@ -54,8 +54,8 @@ export default async function BlogPostPage({ params }: Params) {
       : undefined
 
   return (
-    <main className="mx-auto grid w-full max-w-7xl grid-cols-1 px-4 py-12 xl:grid-cols-[minmax(0,1fr)_minmax(0,46rem)_15rem] xl:gap-x-16">
-      <div className="w-full max-w-[46rem] justify-self-center xl:col-start-2">
+    <main className="mx-auto grid w-full max-w-[90rem] grid-cols-1 px-4 py-12 min-[90rem]:grid-cols-[14rem_minmax(0,46rem)_14rem] min-[90rem]:justify-center min-[90rem]:gap-x-[6.5rem]">
+      <div className="w-full max-w-[46rem] justify-self-center min-[90rem]:col-start-2">
         <div className="flex items-center justify-between gap-4">
           <Link
             href="/blog"
@@ -100,7 +100,7 @@ export default async function BlogPostPage({ params }: Params) {
         </article>
         <Comments key={slug} />
       </div>
-      <aside className="hidden min-w-0 xl:col-start-3 xl:row-start-1 xl:block">
+      <aside className="hidden min-w-0 min-[90rem]:col-start-3 min-[90rem]:row-start-1 min-[90rem]:block">
         <TableOfContents key={slug} />
       </aside>
     </main>

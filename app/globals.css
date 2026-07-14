@@ -336,7 +336,11 @@ h6 {
   :where(.katex-display):not(
     :where([class~="not-prose"], [class~="not-prose"] *)
   ) {
-  max-width: 100%;
+  --prose-math-width: min(55rem, calc(100vw - 2rem));
+
+  width: var(--prose-math-width);
+  max-width: none;
+  margin-inline: calc((100% - var(--prose-math-width)) / 2);
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -446,6 +450,7 @@ h6 {
   :where(details):not(
     :where([class~="not-prose"], [class~="not-prose"] *)
   ) {
+  isolation: isolate;
   margin: 1.25rem 0;
   position: relative;
 }
@@ -469,6 +474,7 @@ h6 {
   background: var(--color-divider);
   content: "";
   pointer-events: none;
+  z-index: -1;
 }
 
 .prose

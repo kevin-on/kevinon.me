@@ -554,7 +554,7 @@ b^*(s)
 \left\|\nabla_\theta \log \pi_\theta(a \mid s)\right\|^2
 \mid s
 \right]
-},
+}
 $$
 
 <details>
@@ -1047,7 +1047,7 @@ $$
 =
 \sum_{i=0}^{k-1}\gamma^i r_{t+i}
 +
-\gamma^k \operatorname{sg}[V_\phi(s_{t+k})],
+\gamma^k \operatorname{sg}[V_\phi(s_{t+k})]
 $$
 
 $$
@@ -1162,7 +1162,7 @@ $$
 \hat{A}_t^{GAE(\gamma,\lambda)}
 =
 \sum_{l=0}^{\infty}
-(\gamma\lambda)^l\delta_{t+l}^V.
+(\gamma\lambda)^l\delta_{t+l}^V,
 $$
 
 where
@@ -1455,7 +1455,7 @@ $$
 \\
 \text{subject to} \quad
 &
-\pi_\theta \text{ and } \pi_{\theta_0} \text{ close}.
+\pi_\theta \text{ and } \pi_{\theta_0} \text{ close}
 \end{aligned}
 $$
 
@@ -1495,7 +1495,7 @@ D_{KL}
 \pi_{\theta}(\cdot \mid s_t)
 \right)
 \right]
-\le \epsilon.
+\le \epsilon
 \end{aligned}
 $$
 
@@ -1584,7 +1584,7 @@ D_{KL}
 \right]
 \approx
 \frac{1}{2}
-\Delta\theta^T F \Delta\theta,
+\Delta\theta^T F \Delta\theta
 $$
 
 So the local TRPO step becomes
@@ -1594,7 +1594,7 @@ $$
 \max_{\Delta\theta} \quad
 &g^T\Delta\theta \\
 \text{subject to} \quad
-&\frac{1}{2}\Delta\theta^T F \Delta\theta \le \epsilon.
+&\frac{1}{2}\Delta\theta^T F \Delta\theta \le \epsilon
 \end{aligned}
 $$
 
@@ -1644,7 +1644,7 @@ $$
 \max_{\Delta\theta} \quad
 &g^T\Delta\theta \\
 \text{subject to} \quad
-&\frac{1}{2}\Delta\theta^T F \Delta\theta \le \epsilon.
+&\frac{1}{2}\Delta\theta^T F \Delta\theta \le \epsilon
 \end{aligned}
 $$
 
@@ -1791,7 +1791,7 @@ $$
 1+\epsilon
 \right)
 \hat{A}_t,
-& \hat{A}_t \ge 0,
+& \hat{A}_t \ge 0
 \\
 \max
 \left(
@@ -1800,7 +1800,7 @@ $$
 1-\epsilon
 \right)
 \hat{A}_t,
-& \hat{A}_t < 0.
+& \hat{A}_t < 0
 \end{cases}
 \\
 &=
@@ -1869,14 +1869,14 @@ $$
 \text{ and }
 \frac{\pi_\theta(a_t \mid s_t)}
 {\pi_{\theta_k}(a_t \mid s_t)}
-< 1+\epsilon,
+< 1+\epsilon
 \\
 0,
 & \hat{A}_t \ge 0
 \text{ and }
 \frac{\pi_\theta(a_t \mid s_t)}
 {\pi_{\theta_k}(a_t \mid s_t)}
-> 1+\epsilon,
+> 1+\epsilon
 \\
 \hat{A}_t
 \frac{\pi_\theta(a_t \mid s_t)}
@@ -1886,14 +1886,14 @@ $$
 \text{ and }
 \frac{\pi_\theta(a_t \mid s_t)}
 {\pi_{\theta_k}(a_t \mid s_t)}
-> 1-\epsilon,
+> 1-\epsilon
 \\
 0,
 & \hat{A}_t < 0
 \text{ and }
 \frac{\pi_\theta(a_t \mid s_t)}
 {\pi_{\theta_k}(a_t \mid s_t)}
-< 1-\epsilon.
+< 1-\epsilon
 \end{cases}
 $$
 

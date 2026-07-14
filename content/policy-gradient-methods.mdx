@@ -273,7 +273,7 @@ So these extra updates cancel out on average, but not necessarily within a finit
 
 To address the problem above, we can think of shifting the returns before using them in the gradient so that positive and negative updates are better balanced. In fact, subtracting a baseline from the returns leaves the estimator unbiased. The baseline can even depend on the current state.
 
-Theorem. Let $b:\mathcal{S}\to\mathbb{R}$ be a deterministic state-dependent baseline. The following estimator is still an unbiased estimator of $\nabla_\theta J(\theta)$:
+<span className="statement-label">Theorem.</span> Let $b:\mathcal{S}\to\mathbb{R}$ be a deterministic state-dependent baseline. The following estimator is still an unbiased estimator of $\nabla_\theta J(\theta)$:
 
 $$
 \hat{\nabla}_\theta J(\theta)
@@ -361,7 +361,7 @@ $$
 
 The term $\nabla_\theta \log \pi_\theta(a_t \mid s_t)$ tells us how to change the policy parameters to make action $a_t$ more or less likely. But rewards before time $t$ are already fixed when $a_t$ is chosen, so they should not affect this update.
 
-Theorem. The following estimator, which uses the reward-to-go, is still an unbiased estimator of $\nabla_\theta J(\theta)$:
+<span className="statement-label">Theorem.</span> The following estimator, which uses the reward-to-go, is still an unbiased estimator of $\nabla_\theta J(\theta)$:
 
 $$
 \hat{\nabla}_\theta J(\theta)
@@ -452,7 +452,7 @@ $$
 
 So Q-estimates reduce variance by replacing a noisy sampled reward-to-go with an estimate of its expected value.
 
-Theorem. The following estimator is an unbiased estimator of $\nabla_\theta J(\theta)$:
+<span className="statement-label">Theorem.</span> The following estimator is an unbiased estimator of $\nabla_\theta J(\theta)$:
 
 $$
 \hat{\nabla}_\theta J(\theta)
@@ -1284,7 +1284,7 @@ Let $\theta_0$ be the current policy parameters, and let $\theta$ be the paramet
 
 Let $T$ be the length of a sampled trajectory, and assume that $s_T$ is terminal, so $V^{\pi_{\theta_0}}(s_T)=0$.
 
-Claim:
+<span className="statement-label">Claim:</span>
 
 $$
 J(\theta)-J(\theta_0)
@@ -1299,7 +1299,8 @@ $$
 
 The trajectory is sampled from the new policy $\pi_\theta$, while the advantage is evaluated using the current policy $\pi_{\theta_0}$.
 
-Proof:
+<details>
+<summary>Proof</summary>
 
 $$
 \begin{aligned}
@@ -1390,6 +1391,8 @@ A^{\pi_{\accent{\theta_0}}}(s_t,a_t)
 \right].
 \end{aligned}
 $$
+
+</details>
 
 Since $J(\theta_0)$ is fixed, we want to maximize
 

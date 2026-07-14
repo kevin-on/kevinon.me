@@ -432,6 +432,128 @@ h6 {
   margin-top: 0.75rem;
 }
 
+/* Theorem-like labels use the serif already shipped with KaTeX. */
+.prose
+  :where(.statement-label):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ) {
+  font-family: "KaTeX_Main", "Times New Roman", serif;
+  font-weight: 700;
+}
+
+/* Native proof and derivation disclosures with a site-owned marker. */
+.prose
+  :where(details):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ) {
+  margin: 1.25rem 0;
+  position: relative;
+}
+
+.prose
+  :where(details[open]):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ) {
+  padding-bottom: 1rem;
+}
+
+.prose
+  :where(details[open]):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  )::after {
+  position: absolute;
+  top: calc(1.7em + 0.75rem);
+  bottom: 1rem;
+  inset-inline-start: 0;
+  width: 1px;
+  background: var(--color-divider);
+  content: "";
+  pointer-events: none;
+}
+
+.prose
+  :where(details[open] > summary ~ *):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ) {
+  margin-inline-start: 0.875rem;
+}
+
+.prose
+  :where(details > summary):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ) {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--color-accent);
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.prose
+  :where(details > summary):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  )::-webkit-details-marker {
+  display: none;
+}
+
+.prose
+  :where(details > summary):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  )::before {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  content: "";
+  flex: 0 0 auto;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.prose
+  :where(details[open] > summary):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  )::before {
+  transform: rotate(45deg);
+}
+
+.prose
+  :where(details > summary):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ):hover,
+.prose
+  :where(details > summary):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ):focus-visible {
+  color: var(--color-accent-hover);
+}
+
+.prose
+  :where(details > summary):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ):focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prose
+    :where(details > summary):not(
+      :where([class~="not-prose"], [class~="not-prose"] *)
+    ),
+  .prose
+    :where(details > summary):not(
+      :where([class~="not-prose"], [class~="not-prose"] *)
+    )::before {
+    transition: none;
+  }
+}
+
 .prose
   :where(hr):not(
     :where([class~="not-prose"], [class~="not-prose"] *)

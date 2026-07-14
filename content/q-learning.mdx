@@ -128,7 +128,7 @@ $$
 
 This is called the Bellman optimality equation. Just as we did for the [Bellman equation](/blog/from-mdps-to-bellman-equations#bellman-equation-and-bellman-operator), we can establish a similar theorem.
 
-Theorem. Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then the optimal value function $V^*:\mathcal{S}\to\mathbb{R}$ exists and satisfies the Bellman optimality equation:
+<span className="statement-label">Theorem.</span> Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then the optimal value function $V^*:\mathcal{S}\to\mathbb{R}$ exists and satisfies the Bellman optimality equation:
 
 $$
 V^*(s)
@@ -393,7 +393,7 @@ Finally, if a function $V$ satisfies the Bellman optimality equation, then $T^*V
 
 The same result can be written directly for the optimal state-action value function.
 
-Theorem. Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then the optimal state-action value function $Q^*:\mathcal{S}\times\mathcal{A}\to\mathbb{R}$ exists and satisfies the Bellman optimality equation:
+<span className="statement-label">Theorem.</span> Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then the optimal state-action value function $Q^*:\mathcal{S}\times\mathcal{A}\to\mathbb{R}$ exists and satisfies the Bellman optimality equation:
 
 $$
 Q^*(s,a)
@@ -1309,7 +1309,7 @@ V^\theta(s_0)
 \right].
 $$
 
-Theorem. The deterministic policy gradient is
+<span className="statement-label">Theorem.</span> The deterministic policy gradient is
 
 $$
 \nabla_\theta J(\theta)
@@ -2212,7 +2212,7 @@ To keep the notation simple, we will omit separate terminal-state cases in the e
 
 We can derive a similar Bellman equation for the soft Q-function.
 
-Theorem. Let $\pi$ be a fixed policy. Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then $Q^\pi_{\mathcal{H}}$ exists and satisfies the soft Bellman equation
+<span className="statement-label">Theorem.</span> Let $\pi$ be a fixed policy. Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then $Q^\pi_{\mathcal{H}}$ exists and satisfies the soft Bellman equation
 
 $$
 Q^\pi_{\mathcal{H}}(s,a)
@@ -2583,7 +2583,7 @@ $$
 
 Now we can write the maximum-entropy version of the Bellman optimality equation.
 
-Theorem. Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then the optimal soft Q-function $Q^*_{\mathcal{H}}:\mathcal{S}\times\mathcal{A}\to\mathbb{R}$ exists and satisfies the soft Bellman optimality equation
+<span className="statement-label">Theorem.</span> Assume $\gamma \in (0,1)$, $|\mathcal{S}|<\infty$, $|\mathcal{A}|<\infty$, and $|r|\le R<\infty$ almost surely. Then the optimal soft Q-function $Q^*_{\mathcal{H}}:\mathcal{S}\times\mathcal{A}\to\mathbb{R}$ exists and satisfies the soft Bellman optimality equation
 
 $$
 Q^*_{\mathcal{H}}(s,a)
@@ -3612,7 +3612,7 @@ $$
 
 So the update direction was explicitly tied to the objective $J(\theta)$. Here, the improvement step is written differently: we choose a new policy by a KL projection onto the softmax policy induced by $Q^{\pi_k}_{\mathcal{H}}$. It is not immediately obvious that this projection really improves the policy. The next theorem shows that it does, in the exact policy-iteration setting.
 
-Theorem. Suppose $Q^{\pi_k}_{\mathcal{H}}$ is the exact soft Q-function of the current policy $\pi_k \in \Pi$. Define the next policy by
+<span className="statement-label">Theorem.</span> Suppose $Q^{\pi_k}_{\mathcal{H}}$ is the exact soft Q-function of the current policy $\pi_k \in \Pi$. Define the next policy by
 
 $$
 \pi_{k+1}(\cdot \mid s)

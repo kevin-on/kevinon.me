@@ -79,7 +79,6 @@ export default function Comments() {
             inputPosition="top"
             theme={giscusTheme}
             lang="en"
-            loading="lazy"
           />
         )}
       </div>

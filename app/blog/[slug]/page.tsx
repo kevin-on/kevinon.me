@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import Comments from "@/app/components/Comments"
@@ -18,7 +19,9 @@ export async function generateStaticParams() {
   return posts.map(({ slug }) => ({ slug }))
 }
 
-export async function generateMetadata({ params }: Params) {
+export async function generateMetadata({
+  params,
+}: Params): Promise<Metadata> {
   const { slug } = await params
   const posts = await getPosts()
   const post = posts.find((candidate) => candidate.slug === slug)
@@ -28,6 +31,9 @@ export async function generateMetadata({ params }: Params) {
   return {
     title: post.metadata.title,
     description: post.metadata.description,
+    alternates: {
+      canonical: `/blog/${post.slug}`,
+    },
   }
 }
 

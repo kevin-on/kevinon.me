@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import localFont from "next/font/local"
 import { Fira_Code, IBM_Plex_Sans } from "next/font/google"
+import { SITE_URL } from "@/lib/site"
 import "katex/dist/katex.min.css"
 import "./globals.css"
 
@@ -83,7 +84,11 @@ const themeInitScript = `
 `
 
 export const metadata: Metadata = {
-  title: "Kevin On",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Kevin On",
+    template: "%s | Kevin On",
+  },
   description: "Kevin On's personal website",
   icons: {
     icon: "/profile.jpg",

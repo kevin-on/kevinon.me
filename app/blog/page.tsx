@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
 import { getChessData } from "@/lib/chess"
@@ -5,6 +6,17 @@ import { getPosts } from "@/lib/posts"
 import CopyEmail from "@/app/components/CopyEmail"
 import ThemeToggle from "@/app/components/ThemeToggle"
 import { getDisplayTitle, getSeriesDefinition } from "@/lib/series"
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "Kevin On",
+  },
+  description:
+    "Kevin On writes about robotics, reinforcement learning, AI products, and software.",
+  alternates: {
+    canonical: "/blog",
+  },
+}
 
 function formatChange(change: number): string {
   if (change > 0) return `+${change}`

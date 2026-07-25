@@ -34,6 +34,19 @@ export async function generateMetadata({
     alternates: {
       canonical: `/blog/${post.slug}`,
     },
+    openGraph: {
+      type: "article",
+      title: post.metadata.title,
+      description: post.metadata.description,
+      url: `/blog/${post.slug}`,
+      siteName: "Kevin On",
+      publishedTime: post.metadata.date,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.metadata.title,
+      description: post.metadata.description,
+    },
   }
 }
 

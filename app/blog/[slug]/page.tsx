@@ -8,9 +8,14 @@ import TableOfContents from "@/app/components/TableOfContents"
 import ThemeToggle from "@/app/components/ThemeToggle"
 import { getPosts } from "@/lib/posts"
 import { getDisplayTitle, getSeriesContext } from "@/lib/series"
+import { SITE_URL } from "@/lib/site"
 
 type Params = {
   params: Promise<{ slug: string }>
+}
+
+function serializeJsonLd(data: object): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c")
 }
 
 export async function generateStaticParams() {
@@ -62,6 +67,37 @@ export default async function BlogPostPage({ params }: Params) {
   )
   const currentPost = posts[currentPostIndex]
   const metadata = currentPost.metadata
+  const postUrl = `${SITE_URL}/blog/${currentPost.slug}`
+  const imageUrl = `${postUrl}/opengraph-image`
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "@id": `${postUrl}#blog-posting`,
+    headline: metadata.title,
+    ...(metadata.description
+      ? { description: metadata.description }
+      : {}),
+    datePublished: metadata.date,
+    image: [imageUrl],
+    url: postUrl,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": postUrl,
+    },
+    author: {
+      "@type": "Person",
+      "@id": `${SITE_URL}/#person`,
+      name: "Kevin On",
+      url: SITE_URL,
+    },
+    isPartOf: {
+      "@type": "Blog",
+      "@id": `${SITE_URL}/blog#blog`,
+      name: "Kevin On",
+      url: `${SITE_URL}/blog`,
+    },
+    inLanguage: "en",
+  }
   const seriesContext = getSeriesContext(posts, currentPost)
   const previousPost = seriesContext
     ? seriesContext.previousPost
@@ -73,55 +109,61 @@ export default async function BlogPostPage({ params }: Params) {
       : undefined
 
   return (
-    <main className="mx-auto grid w-full max-w-[90rem] grid-cols-1 px-4 py-12 min-[90rem]:grid-cols-[14rem_minmax(0,46rem)_14rem] min-[90rem]:justify-center min-[90rem]:gap-x-[6.5rem]">
-      <div className="w-full max-w-[46rem] justify-self-center min-[90rem]:col-start-2">
-        <div className="flex items-center justify-between gap-4">
-          <Link
-            href="/blog"
-            className="text-sm text-foreground-subtle transition-colors hover:text-accent-hover focus-visible:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            ← Back to blog
-          </Link>
-          <ThemeToggle />
-        </div>
-        <article className="mt-6">
-          <header className="mb-8">
-            {seriesContext && (
-              <p className="mb-1 text-sm font-normal text-foreground-subtle">
-                {seriesContext.definition.title} series
-              </p>
-            )}
-            <h1 className="text-3xl font-bold">
-              {getDisplayTitle(currentPost)}
-            </h1>
-            <p className="mt-2 text-sm text-foreground-subtle">
-              {metadata.date}
-            </p>
-          </header>
-          {seriesContext && (
-            <SeriesNavigation
-              currentSlug={currentPost.slug}
-              posts={seriesContext.posts}
-              seriesTitle={seriesContext.definition.title}
-            />
-          )}
-          <div
-            data-post-content
-            className="prose max-w-none"
-          >
-            <Post />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
+      <main className="mx-auto grid w-full max-w-[90rem] grid-cols-1 px-4 py-12 min-[90rem]:grid-cols-[14rem_minmax(0,46rem)_14rem] min-[90rem]:justify-center min-[90rem]:gap-x-[6.5rem]">
+        <div className="w-full max-w-[46rem] justify-self-center min-[90rem]:col-start-2">
+          <div className="flex items-center justify-between gap-4">
+            <Link
+              href="/blog"
+              className="text-sm text-foreground-subtle transition-colors hover:text-accent-hover focus-visible:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              ← Back to blog
+            </Link>
+            <ThemeToggle />
           </div>
-          <PostNavigation
-            previousPost={previousPost}
-            nextPost={nextPost}
-            scope={seriesContext ? "series" : "posts"}
-          />
-        </article>
-        <Comments key={slug} />
-      </div>
-      <aside className="hidden min-w-0 min-[90rem]:col-start-3 min-[90rem]:row-start-1 min-[90rem]:block">
-        <TableOfContents key={slug} />
-      </aside>
-    </main>
+          <article className="mt-6">
+            <header className="mb-8">
+              {seriesContext && (
+                <p className="mb-1 text-sm font-normal text-foreground-subtle">
+                  {seriesContext.definition.title} series
+                </p>
+              )}
+              <h1 className="text-3xl font-bold">
+                {getDisplayTitle(currentPost)}
+              </h1>
+              <p className="mt-2 text-sm text-foreground-subtle">
+                {metadata.date}
+              </p>
+            </header>
+            {seriesContext && (
+              <SeriesNavigation
+                currentSlug={currentPost.slug}
+                posts={seriesContext.posts}
+                seriesTitle={seriesContext.definition.title}
+              />
+            )}
+            <div
+              data-post-content
+              className="prose max-w-none"
+            >
+              <Post />
+            </div>
+            <PostNavigation
+              previousPost={previousPost}
+              nextPost={nextPost}
+              scope={seriesContext ? "series" : "posts"}
+            />
+          </article>
+          <Comments key={slug} />
+        </div>
+        <aside className="hidden min-w-0 min-[90rem]:col-start-3 min-[90rem]:row-start-1 min-[90rem]:block">
+          <TableOfContents key={slug} />
+        </aside>
+      </main>
+    </>
   )
 }

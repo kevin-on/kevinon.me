@@ -34,7 +34,9 @@ export async function generateMetadata({
   if (!post) notFound()
 
   return {
-    title: post.metadata.title,
+    title: {
+      absolute: post.metadata.title,
+    },
     description: post.metadata.description,
     alternates: {
       canonical: `/blog/${post.slug}`,

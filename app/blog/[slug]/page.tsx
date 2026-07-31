@@ -116,8 +116,8 @@ export default async function BlogPostPage({ params }: Params) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      <main className="mx-auto grid w-full max-w-[90rem] grid-cols-1 px-4 py-12 min-[90rem]:grid-cols-[14rem_minmax(0,46rem)_14rem] min-[90rem]:justify-center min-[90rem]:gap-x-[6.5rem]">
-        <div className="w-full max-w-[46rem] justify-self-center min-[90rem]:col-start-2">
+      <main className="mx-auto grid w-full max-w-[90rem] grid-cols-1 px-4 py-12 min-[90rem]:grid-cols-[14rem_minmax(0,46rem)_17rem] min-[90rem]:justify-center min-[90rem]:gap-x-[5.5rem]">
+        <div className="relative w-full max-w-[46rem] justify-self-center min-[90rem]:col-start-2">
           <div className="flex items-center justify-between gap-4">
             <Link
               href="/blog"
@@ -161,10 +161,10 @@ export default async function BlogPostPage({ params }: Params) {
             />
           </article>
           <Comments key={slug} />
+          <aside className="hidden min-[56rem]:block min-[90rem]:absolute min-[90rem]:inset-y-0 min-[90rem]:left-full min-[90rem]:ml-[5.5rem] min-[90rem]:w-[17rem]">
+            <TableOfContents key={slug} />
+          </aside>
         </div>
-        <aside className="hidden min-w-0 min-[90rem]:col-start-3 min-[90rem]:row-start-1 min-[90rem]:block">
-          <TableOfContents key={slug} />
-        </aside>
       </main>
     </>
   )

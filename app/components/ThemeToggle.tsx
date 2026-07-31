@@ -182,7 +182,11 @@ export default function ThemeToggle() {
         aria-controls={popoverId}
         aria-expanded={isOpen}
         aria-label="Theme settings"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background-elevated text-foreground-muted transition-colors hover:bg-background-soft hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+          isOpen
+            ? "bg-background-soft text-foreground"
+            : "text-foreground-subtle hover:bg-background-soft hover:text-accent-hover"
+        }`}
         onClick={() => setIsOpen((open) => !open)}
       >
         <span className="theme-icon-sun">
@@ -196,7 +200,7 @@ export default function ThemeToggle() {
       {isOpen && (
         <div
           id={popoverId}
-          className="absolute right-0 top-full z-50 mt-2 w-40 rounded-xl border border-border bg-background-elevated p-1.5 text-foreground shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 w-40 rounded-xl border border-border bg-background p-1.5 text-foreground shadow-lg"
         >
           <p className="px-2 py-1 text-xs font-medium text-foreground-subtle">
             Theme

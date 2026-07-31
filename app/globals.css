@@ -9,7 +9,6 @@
   /* Semantic color foundations */
   --site-color-background: light-dark(#fefbf5, #1b1b1f);
   --site-color-background-alt: light-dark(#f8f3ea, #161618);
-  --site-color-background-elevated: light-dark(#fffefb, #202127);
   --site-color-background-soft: light-dark(#f5efe5, #202127);
   --site-color-foreground: light-dark(#27241f, rgba(255, 255, 245, 0.86));
   --site-color-foreground-muted: light-dark(
@@ -45,7 +44,6 @@
   /* Colors */
   --color-background: var(--site-color-background);
   --color-background-alt: var(--site-color-background-alt);
-  --color-background-elevated: var(--site-color-background-elevated);
   --color-background-soft: var(--site-color-background-soft);
   --color-foreground: var(--site-color-foreground);
   --color-foreground-muted: var(--site-color-foreground-muted);

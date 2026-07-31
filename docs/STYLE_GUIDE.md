@@ -49,7 +49,7 @@ Interaction states follow these rules:
 | --- | --- | --- | --- | --- |
 | Prose link | Accent + underline | `accent-hover` + underline | Accent + visible accent outline | N/A |
 | Muted UI link | Muted or subtle text | `accent-hover` | `accent-hover` + visible accent outline | Accent when applicable |
-| Icon/control | Elevated surface + `border` | Soft surface + stronger text | Visible accent outline | `accent-soft` surface + foreground text |
+| Utility icon/control | `border` on the page canvas + subtle text | Soft surface + `accent-hover` text | Visible accent outline | Soft surface + foreground text |
 | Local table-of-contents link | Subtle text | Muted text | Visible accent outline | Accent text |
 
 Never remove focus outlines without supplying an equally visible replacement. Color must not be the only state cue for focus or selection.
@@ -62,13 +62,12 @@ Never remove focus outlines without supplying an equally visible replacement. Co
 
 ### Surfaces and Boundaries
 
-VitePress distinguishes page, recessed, soft, and elevated surfaces. This site uses the same roles with its own warm/cool palette.
+VitePress distinguishes several surface levels. This site keeps page, recessed, and soft roles with its own warm/cool palette, while borders and shadows provide elevation when needed.
 
 | Tailwind class | CSS variable | Usage |
 | --- | --- | --- |
 | `bg-background` | `--color-background` | Main page canvas |
 | `bg-background-alt` | `--color-background-alt` | Recessed regions and code blocks |
-| `bg-background-elevated` | `--color-background-elevated` | Menus, popovers, and raised controls |
 | `bg-background-soft` | `--color-background-soft` | Hover states, selected-neutral rows, and table zebra rows |
 | `border-divider` | `--color-divider` | Section separators, table rules, and quiet structural lines |
 | `border-border` | `--color-border` | Stronger quiet outlines for controls and inline code |
@@ -77,7 +76,6 @@ VitePress distinguishes page, recessed, soft, and elevated surfaces. This site u
 | --- | --- | --- |
 | `background` | `#fefbf5` | `#1b1b1f` |
 | `background-alt` | `#f8f3ea` | `#161618` |
-| `background-elevated` | `#fffefb` | `#202127` |
 | `background-soft` | `#f5efe5` | `#202127` |
 | `divider` | `#e5dcce` | `rgba(82, 82, 89, 0.32)` |
 | `border` | `#cfc3b2` | `#3c3f44` |
@@ -85,7 +83,7 @@ VitePress distinguishes page, recessed, soft, and elevated surfaces. This site u
 Use `divider` for separation and `border` when a shape needs more definition. `border` is deliberately quiet and is not a standalone 3:1 state cue; pair it with a clear icon, fill, shadow, or focus outline when the boundary is essential.
 
 ```tsx
-<div className="border border-border bg-background-elevated shadow-lg">
+<div className="border border-border bg-background shadow-lg">
   Popover
 </div>
 <pre className="bg-background-alt">Code</pre>

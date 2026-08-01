@@ -56,7 +56,7 @@ export default async function BlogPage() {
             >
               GitHub
             </a>
-            <CopyEmail email="kwanghyun.on@gmail.com" />
+            <CopyEmail email="kevinon@stanford.edu" />
           </div>
           {(chessData.rapid || chessData.blitz) && (
             <div className="mt-3 flex gap-4 text-sm text-foreground-subtle">

@@ -44,8 +44,8 @@ export default async function BlogPage() {
         <div className="col-start-2 row-start-2 sm:row-start-1 min-w-0">
           <h1 className="text-2xl font-bold">Kevin On</h1>
           <p className="mt-1 text-foreground-muted">
-            Mostly interested in robotics. Also into AI products, chess, and
-            soccer.
+            I’m an MS student at Stanford, mostly interested in robotics. Also
+            into AI products, chess, and soccer.
           </p>
           <div className="flex flex-wrap gap-4 mt-3">
             <a

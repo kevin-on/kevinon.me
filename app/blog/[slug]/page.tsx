@@ -35,7 +35,7 @@ export async function generateMetadata({
 
   return {
     title: {
-      absolute: post.metadata.title,
+      absolute: post.metadata.seoTitle ?? post.metadata.title,
     },
     description: post.metadata.description,
     alternates: {

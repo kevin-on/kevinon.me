@@ -5,6 +5,7 @@ export type PostSeries = {
 
 export type PostMetadata = {
   title: string
+  seoTitle?: string
   date: string
   description: string
   draft?: boolean
